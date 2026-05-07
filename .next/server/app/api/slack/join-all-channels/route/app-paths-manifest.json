@@ -1,0 +1,3 @@
+{
+  "/api/slack/join-all-channels/route": "app/api/slack/join-all-channels/route.js"
+}

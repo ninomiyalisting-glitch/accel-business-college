@@ -1,0 +1,40 @@
+{
+  "app": {
+    "[project]/src/app/_not-found/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/admin/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/auth/error/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/chat/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/dashboard/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/gallery/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/videos/[videoId]/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/videos/folder/[folderId]/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/videos/manage/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ],
+    "[project]/src/app/videos/page": [
+      "static/media/ad9c66e761fed85a-s.p.0e4b2z5rxsmxh.woff2"
+    ]
+  },
+  "appUsingSizeAdjust": true,
+  "pages": {},
+  "pagesUsingSizeAdjust": false
+}

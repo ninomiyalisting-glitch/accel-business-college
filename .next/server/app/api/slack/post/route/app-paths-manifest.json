@@ -1,0 +1,3 @@
+{
+  "/api/slack/post/route": "app/api/slack/post/route.js"
+}

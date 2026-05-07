@@ -1,0 +1,3 @@
+{
+  "/api/slack/sync-channels/route": "app/api/slack/sync-channels/route.js"
+}
