@@ -42,7 +42,9 @@
       "Bash(npm install *)",
       "Bash(sed -i '' 's|<main className=\"max-w-5xl mx-auto px-4 py-6\">|<main className=\"max-w-5xl mx-auto px-4 py-6 pb-20\">|g' /Users/keigoninomiya/accel-business-college/src/app/gallery/page.tsx)",
       "Bash(sed -i '' 's|<main className=\"flex-1 px-4 py-6 min-w-0\">|<main className=\"flex-1 px-4 py-6 pb-20 min-w-0\">|g' /Users/keigoninomiya/accel-business-college/src/app/videos/page.tsx)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(brew install *)",
+      "Bash(gh auth *)"
     ]
   }
 }
