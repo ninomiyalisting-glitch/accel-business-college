@@ -73,7 +73,7 @@ export default function BottomNav() {
   }, [pathname])
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1d23]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a1d23] pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-14">
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active =

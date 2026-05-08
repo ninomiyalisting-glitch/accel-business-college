@@ -370,7 +370,7 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {selectedCategory ? (
@@ -414,7 +414,7 @@ export default function GalleryPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-6 pb-20">
+      <main className="max-w-5xl mx-auto px-4 py-6 pb-bottom-nav">
         {!selectedCategory ? (
           /* Category Grid */
           <>

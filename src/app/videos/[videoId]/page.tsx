@@ -210,7 +210,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
   return (
     <div className="min-h-screen bg-gray-950">
       {/* Header */}
-      <header className="bg-black/60 backdrop-blur sticky top-0 z-10 border-b border-white/10">
+      <header className="bg-black/60 backdrop-blur sticky top-0 z-10 border-b border-white/10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link
             href={backHref}

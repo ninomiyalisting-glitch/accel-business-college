@@ -157,7 +157,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href={`/articles/${id}`} className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
@@ -185,7 +185,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-20 space-y-4">
+      <main className="max-w-3xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Cover image */}
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <label className="block text-xs font-medium text-gray-500 mb-2">カバー画像</label>

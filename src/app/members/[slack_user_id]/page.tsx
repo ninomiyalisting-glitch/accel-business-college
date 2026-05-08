@@ -139,7 +139,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/members" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
@@ -159,7 +159,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <main className="max-w-2xl mx-auto px-4 pt-6 pb-bottom-nav space-y-4">
         {/* Hero card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="h-20 bg-gradient-to-r from-[#2563eb]/20 via-[#2563eb]/10 to-transparent" />

@@ -178,7 +178,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Image src="/icon-192x192.png" alt="ロゴ" width={28} height={28} className="rounded-lg" />
@@ -211,7 +211,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 pb-20">
+      <main className="max-w-5xl mx-auto px-4 py-8 pb-bottom-nav">
         {/* Welcome */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">

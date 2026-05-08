@@ -1,9 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
 const notoSansJP = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "500", "700"] });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "アクセルビジネスカレッジ",
@@ -36,7 +42,7 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#2563eb" />
       </head>
-      <body className={`${notoSansJP.className} h-full pb-14`}>
+      <body className={`${notoSansJP.className} h-full pb-bottom-nav`}>
         {children}
         <BottomNav />
       </body>

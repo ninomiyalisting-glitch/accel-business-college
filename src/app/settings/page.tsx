@@ -106,7 +106,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
@@ -117,7 +117,7 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-6 pb-20 space-y-4">
+      <main className="max-w-lg mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* 通知 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">

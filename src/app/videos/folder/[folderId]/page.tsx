@@ -192,7 +192,7 @@ export default function FolderPage({ params }: { params: Promise<{ folderId: str
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-[#2563eb] text-white flex-shrink-0 sticky top-0 z-10 shadow-md">
+      <header className="bg-[#2563eb] text-white flex-shrink-0 sticky top-0 z-10 shadow-md pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-3 px-4 h-14">
           <Link href="/videos" className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors flex-shrink-0">
             <ArrowLeft size={18} />

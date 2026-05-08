@@ -261,7 +261,7 @@ export default function MembersPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
@@ -285,7 +285,7 @@ export default function MembersPage() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-20">
+      <main className="max-w-4xl mx-auto px-4 py-6 pb-bottom-nav">
         {/* 検索 + ソート */}
         <div className="flex gap-2 mb-6">
           <div className="relative flex-1">

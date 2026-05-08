@@ -124,7 +124,7 @@ export default function NewEventPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
@@ -143,7 +143,7 @@ export default function NewEventPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-20 space-y-4">
+      <main className="max-w-2xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Basic info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>

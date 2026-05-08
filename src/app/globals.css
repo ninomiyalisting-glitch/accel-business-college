@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* フッターナビ(56px)+ safe-area-inset-bottom ぶんの余白
+     Android: calc(5rem + 0) = 80px  / iPhone X+: calc(5rem + 34px) = 114px
+     BottomNav を持つ全ページの <main> および <body> に適用する */
+  .pb-bottom-nav {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -9,6 +31,7 @@
 html,
 body {
   height: 100%;
+  min-height: 100dvh;
   margin: 0;
   padding: 0;
 }

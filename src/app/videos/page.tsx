@@ -315,7 +315,7 @@ export default function VideosPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ── Header ── */}
-      <header className="bg-[#2563eb] text-white flex-shrink-0 sticky top-0 z-40 shadow-md">
+      <header className="bg-[#2563eb] text-white flex-shrink-0 sticky top-0 z-40 shadow-md pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-3 px-4 h-14">
           <Link
             href="/dashboard"
@@ -428,7 +428,7 @@ export default function VideosPage() {
         </aside>
 
         {/* Video grid */}
-        <main className="flex-1 px-4 py-6 pb-20 min-w-0">
+        <main className="flex-1 px-4 py-6 pb-bottom-nav min-w-0">
           {videosLoading && (
             <div className="flex flex-col items-center justify-center py-24 gap-3">
               <div className="w-10 h-10 border-[3px] border-blue-100 border-t-[#2563eb] rounded-full animate-spin" />

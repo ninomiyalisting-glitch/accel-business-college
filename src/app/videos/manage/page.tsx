@@ -553,7 +553,7 @@ export default function ManagePage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <header className="bg-[#1e293b] text-white sticky top-0 z-10 shadow-lg">
+      <header className="bg-[#1e293b] text-white sticky top-0 z-10 shadow-lg pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-3 px-4 h-14">
           <Link href="/videos" className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors flex-shrink-0">
             <ArrowLeft size={18} />
