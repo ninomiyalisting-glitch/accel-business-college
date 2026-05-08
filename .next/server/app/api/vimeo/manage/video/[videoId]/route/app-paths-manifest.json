@@ -1,3 +1,0 @@
-{
-  "/api/vimeo/manage/video/[videoId]/route": "app/api/vimeo/manage/video/[videoId]/route.js"
-}
