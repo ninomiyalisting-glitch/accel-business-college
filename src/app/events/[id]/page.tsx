@@ -1,10 +1,11 @@
 'use client'
 
-import { use, useState, useEffect, useCallback } from 'react'
+import { use, useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, Clock, CheckCircle2, Copy, Check, Plus, Trash2, UserPlus, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Clock, CheckCircle2, Copy, Check, Plus, Trash2, UserPlus, ChevronDown, ChevronUp, CalendarCog, X, Image as ImageIcon, Sparkles, Save, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { GalleryPicker } from '@/components/GalleryPicker'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
@@ -32,12 +33,14 @@ interface EventData {
   deadline: string | null
   confirmed_date: string | null
   created_at: string
+  cover_image_url?: string | null
 }
 
 interface EventDate {
   id: string
   event_id: string
   date: string
+  end_time?: string | null
 }
 
 interface EventResponse {
@@ -46,11 +49,95 @@ interface EventResponse {
   event_date_id: string
   responder_name: string
   response: ResponseType
+  avatar_url?: string | null
 }
 
 interface ProxyEntry {
   name: string
   draft: Record<string, ResponseType>
+}
+
+const escapeIlike = (s: string) => s.replace(/[\\%_]/g, (m) => '\\' + m)
+
+const firstSegment = (name: string): string => {
+  const m = name.match(/^([^\s\/_,，、・\-|]+)/)
+  return m ? m[1] : name
+}
+
+async function resolveAvatarsForNames(names: string[]): Promise<Record<string, string | null>> {
+  const result: Record<string, string | null> = {}
+  for (const n of names) result[n] = null
+  if (names.length === 0) return result
+
+  const [byIdRes, byNameRes] = await Promise.all([
+    supabase.from('users').select('slack_user_id, display_name, avatar_url').in('slack_user_id', names),
+    supabase.from('users').select('slack_user_id, display_name, avatar_url').in('display_name', names),
+  ])
+  for (const u of byIdRes.data ?? []) {
+    if (u.avatar_url && names.includes(u.slack_user_id)) result[u.slack_user_id] = u.avatar_url
+  }
+  for (const u of byNameRes.data ?? []) {
+    if (u.avatar_url && names.includes(u.display_name) && !result[u.display_name]) {
+      result[u.display_name] = u.avatar_url
+    }
+  }
+
+  const unresolved = names.filter((n) => !result[n])
+  if (unresolved.length === 0) return result
+
+  await Promise.all(
+    unresolved.map(async (n) => {
+      const seg = firstSegment(n)
+      // 1. Try users.display_name ILIKE %seg%  (covers "にのみー" matching responder "にのみー/...")
+      const r1 = await supabase
+        .from('users')
+        .select('avatar_url, display_name')
+        .ilike('display_name', `%${escapeIlike(seg)}%`)
+        .not('avatar_url', 'is', null)
+        .limit(1)
+      if (r1.data?.[0]?.avatar_url) { result[n] = r1.data[0].avatar_url; return }
+
+      // 2. Try reverse: users.display_name LIKE n% (responder contains user's display_name as prefix)
+      const r2 = await supabase
+        .from('users')
+        .select('avatar_url, display_name')
+        .ilike('display_name', `${escapeIlike(seg)}%`)
+        .not('avatar_url', 'is', null)
+        .limit(1)
+      if (r2.data?.[0]?.avatar_url) result[n] = r2.data[0].avatar_url
+    })
+  )
+  return result
+}
+
+function formatDateRange(date: string, endTime: string | null | undefined): { dateLabel: string; timeLabel: string | null } {
+  const dt = new Date(date)
+  const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0
+  const dateLabel = format(dt, 'M/d(E)', { locale: ja })
+  if (!hasTime) return { dateLabel, timeLabel: null }
+  const start = format(dt, 'HH:mm')
+  if (!endTime) return { dateLabel, timeLabel: start }
+  return { dateLabel, timeLabel: `${start}〜${format(new Date(endTime), 'HH:mm')}` }
+}
+
+function gradientFor(seed: string): string {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  const a = h % 360
+  const b = (a + 60) % 360
+  return `linear-gradient(135deg, hsl(${a},70%,55%), hsl(${b},70%,45%))`
+}
+
+function initialOf(name: string): string {
+  const n = name.trim()
+  if (!n) return '?'
+  return n.charAt(0).toUpperCase()
+}
+
+function avatarColor(seed: string): string {
+  let h = 0
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0
+  return `hsl(${h % 360}, 65%, 55%)`
 }
 
 function scoreColor(okCount: number, total: number): string {
@@ -99,6 +186,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [responses, setResponses] = useState<EventResponse[]>([])
   const [myName, setMyName] = useState('')
   const [mySlackUserId, setMySlackUserId] = useState<string | null>(null)
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<string, ResponseType>>({})
   const [nameEditing, setNameEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -114,6 +202,15 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   // Admin delete state
   const [deletingName, setDeletingName] = useState<string | null>(null)
 
+  // Date edit modal
+  const [showDateEditor, setShowDateEditor] = useState(false)
+
+  // Cover image edit
+  const [showCoverEdit, setShowCoverEdit] = useState(false)
+
+  // Avatars map: responder_name -> avatar_url
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({})
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SLACK_USER_KEY)
@@ -121,6 +218,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         const u = JSON.parse(saved)
         setMyName(u.display_name ?? '')
         setMySlackUserId(u.slack_user_id ?? null)
+        setMyAvatarUrl(u.avatar_url ?? null)
       }
     } catch { /* ignore */ }
   }, [])
@@ -145,9 +243,43 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       .on('postgres_changes', { event: '*', schema: 'public', table: 'event_responses', filter: `event_id=eq.${id}` }, () => {
         loadData()
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_dates', filter: `event_id=eq.${id}` }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events', filter: `id=eq.${id}` }, () => {
+        loadData()
+      })
       .subscribe()
     return () => { supabase.removeChannel(sub) }
   }, [id, loadData])
+
+  useEffect(() => {
+    const names = [...new Set(responses.map((r) => r.responder_name))]
+    if (names.length === 0) return
+
+    // Harvest already-cached avatar_url from event_responses
+    const cached: Record<string, string> = {}
+    for (const r of responses) {
+      if (r.avatar_url && !cached[r.responder_name]) cached[r.responder_name] = r.avatar_url
+    }
+
+    const toFetch = names.filter((n) => !(n in avatars) && !cached[n])
+    const cachedToApply = Object.entries(cached).filter(([n, v]) => v && avatars[n] !== v)
+
+    if (toFetch.length === 0 && cachedToApply.length === 0) return
+
+    const run = async () => {
+      const next: Record<string, string | null> = {}
+      for (const n of toFetch) next[n] = null
+      for (const [n, v] of cachedToApply) next[n] = v
+      if (toFetch.length > 0) {
+        const found = await resolveAvatarsForNames(toFetch)
+        for (const [n, v] of Object.entries(found)) if (v) next[n] = v
+      }
+      setAvatars((prev) => ({ ...prev, ...next }))
+    }
+    run()
+  }, [responses, avatars])
 
   useEffect(() => {
     if (!myName) return
@@ -163,11 +295,27 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     if (!myName.trim()) return alert('名前を入力してください')
     if (dates.some((d) => !draft[d.id])) return alert('すべての日程に回答してください')
     setSaving(true)
+
+    // Resolve avatar: localStorage first, otherwise look up by slack_user_id, then by display_name
+    let avatarUrl: string | null = myAvatarUrl
+    if (!avatarUrl) {
+      if (mySlackUserId) {
+        const { data } = await supabase.from('users').select('avatar_url').eq('slack_user_id', mySlackUserId).maybeSingle()
+        avatarUrl = data?.avatar_url ?? null
+      }
+      if (!avatarUrl) {
+        const { data } = await supabase.from('users').select('avatar_url').eq('display_name', myName.trim()).maybeSingle()
+        avatarUrl = data?.avatar_url ?? null
+      }
+      if (avatarUrl) setMyAvatarUrl(avatarUrl)
+    }
+
     const upsertRows = dates.map((d) => ({
       event_id: id,
       event_date_id: d.id,
       responder_name: myName.trim(),
       response: draft[d.id],
+      avatar_url: avatarUrl,
     }))
     const { error } = await supabase.from('event_responses').upsert(upsertRows, { onConflict: 'event_date_id,responder_name' })
     setSaving(false)
@@ -184,12 +332,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       }
     }
     setProxySaving(true)
+
+    // Look up avatar for each proxy responder
+    const avatarByName = await resolveAvatarsForNames(valid.map((e) => e.name.trim()))
+
     const rows = valid.flatMap((entry) =>
       dates.map((d) => ({
         event_id: id,
         event_date_id: d.id,
         responder_name: entry.name.trim(),
         response: entry.draft[d.id],
+        avatar_url: avatarByName[entry.name.trim()] ?? null,
       }))
     )
     const { error } = await supabase.from('event_responses').upsert(rows, { onConflict: 'event_date_id,responder_name' })
@@ -241,9 +394,20 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const isAdmin = mySlackUserId === ADMIN_SLACK_USER_ID
   const canDelete = isAdmin || (myName && event?.created_by === myName)
-  const respondents = [...new Set(responses.map((r) => r.responder_name))].sort()
-  const countByDate = (dateId: string, res: ResponseType) =>
-    responses.filter((r) => r.event_date_id === dateId && r.response === res).length
+  const respondents = useMemo(
+    () => [...new Set(responses.map((r) => r.responder_name))].sort(),
+    [responses]
+  )
+  // Pre-aggregate response counts: { [event_date_id]: { '○': n, '△': n, '×': n } }
+  const countsByDate = useMemo(() => {
+    const map: Record<string, Record<ResponseType, number>> = {}
+    for (const r of responses) {
+      if (!map[r.event_date_id]) map[r.event_date_id] = { '○': 0, '△': 0, '×': 0 }
+      map[r.event_date_id][r.response] = (map[r.event_date_id][r.response] ?? 0) + 1
+    }
+    return map
+  }, [responses])
+  const countByDate = (dateId: string, res: ResponseType) => countsByDate[dateId]?.[res] ?? 0
 
   if (loading) {
     return (
@@ -298,6 +462,28 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
+        {/* Cover image */}
+        <div className="relative rounded-2xl overflow-hidden aspect-[16/6] shadow-sm border border-gray-100 bg-gray-100">
+          {event.cover_image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={event.cover_image_url} alt={event.title} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full" style={{ background: gradientFor(event.title) }}>
+              <div className="w-full h-full flex items-center justify-center">
+                <CalendarDays size={56} className="text-white/40" />
+              </div>
+            </div>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => setShowCoverEdit(true)}
+              className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white/90 backdrop-blur text-gray-700 hover:bg-white rounded-lg shadow-sm transition-colors"
+            >
+              <ImageIcon size={12} /> 画像を変更
+            </button>
+          )}
+        </div>
+
         {/* Event info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <div className="flex items-center gap-2 mb-2">
@@ -332,34 +518,59 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Response table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
             <span className="font-semibold text-gray-900 text-sm">回答状況</span>
-            <span className="text-xs text-gray-400">{respondents.length}人回答</span>
+            <div className="flex items-center gap-2">
+              {canDelete && (
+                <button
+                  onClick={() => setShowDateEditor(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#2563eb] border border-[#2563eb]/30 rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  <CalendarCog size={12} /> 候補日時を編集
+                </button>
+              )}
+              <span className="text-xs text-gray-400">{respondents.length}人回答</span>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse" style={{ minWidth: Math.max(400, 200 + respondents.length * 64) }}>
               <thead>
                 <tr className="bg-gray-50/80">
                   <th className="text-left text-xs font-semibold text-gray-500 px-4 py-2.5 sticky left-0 bg-gray-50/80 z-10 min-w-[140px]">日程</th>
-                  {respondents.map((name) => (
-                    <th key={name} className="text-center text-xs font-medium text-gray-600 px-2 py-2.5 min-w-[56px]">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="block truncate max-w-[56px]" title={name}>{name.slice(0, 4)}</span>
-                        {isAdmin && (
-                          <button
-                            onClick={() => handleAdminDelete(name)}
-                            disabled={deletingName === name}
-                            className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40"
-                            title={`${name}の回答を削除`}
-                          >
-                            {deletingName === name
-                              ? <div className="w-3 h-3 border border-red-300 border-t-transparent rounded-full animate-spin" />
-                              : <Trash2 size={11} />}
-                          </button>
-                        )}
-                      </div>
-                    </th>
-                  ))}
+                  {respondents.map((name) => {
+                    const av = avatars[name]
+                    return (
+                      <th key={name} className="text-center text-xs font-medium text-gray-600 px-2 py-2.5 min-w-[56px]">
+                        <div className="flex flex-col items-center gap-1">
+                          {av ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={av} alt={name} loading="lazy" decoding="async" width={24} height={24} className="w-6 h-6 rounded-full object-cover border border-gray-200" />
+                          ) : (
+                            <span
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                              style={{ background: avatarColor(name) }}
+                              aria-hidden
+                            >
+                              {initialOf(name)}
+                            </span>
+                          )}
+                          <span className="block truncate max-w-[56px]" title={name}>{name.slice(0, 4)}</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleAdminDelete(name)}
+                              disabled={deletingName === name}
+                              className="text-gray-300 hover:text-red-400 transition-colors disabled:opacity-40"
+                              title={`${name}の回答を削除`}
+                            >
+                              {deletingName === name
+                                ? <div className="w-3 h-3 border border-red-300 border-t-transparent rounded-full animate-spin" />
+                                : <Trash2 size={11} />}
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                    )
+                  })}
                   <th className="text-center text-xs font-semibold text-gray-500 px-2 py-2.5 min-w-[40px]">○</th>
                   <th className="text-center text-xs font-semibold text-gray-500 px-2 py-2.5 min-w-[40px]">△</th>
                   <th className="text-center text-xs font-semibold text-gray-500 px-2 py-2.5 min-w-[40px]">×</th>
@@ -368,15 +579,12 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <tbody>
                 {dates.map((d) => {
                   const okCount = countByDate(d.id, '○')
+                  const { dateLabel, timeLabel } = formatDateRange(d.date, d.end_time)
                   return (
                     <tr key={d.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3 sticky left-0 bg-white hover:bg-gray-50/50 z-10">
-                        <div className="font-medium text-gray-900 text-xs leading-snug">
-                          {format(new Date(d.date), 'M/d(E)', { locale: ja })}
-                        </div>
-                        {(new Date(d.date).getHours() !== 0 || new Date(d.date).getMinutes() !== 0) && (
-                          <div className="text-[11px] text-gray-400">{format(new Date(d.date), 'HH:mm')}</div>
-                        )}
+                        <div className="font-medium text-gray-900 text-xs leading-snug">{dateLabel}</div>
+                        {timeLabel && <div className="text-[11px] text-gray-400">{timeLabel}</div>}
                         <div className={`mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${scoreColor(okCount, respondents.length)}`}>
                           ○ {okCount}/{respondents.length}
                         </div>
@@ -440,23 +648,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Date responses */}
           <div className="space-y-2 mb-5">
-            {dates.map((d) => (
-              <div key={d.id} className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm text-gray-800 font-medium">
-                    {format(new Date(d.date), 'M/d(E)', { locale: ja })}
-                    {(new Date(d.date).getHours() !== 0 || new Date(d.date).getMinutes() !== 0) &&
-                      <span className="text-gray-400 ml-1 text-xs">{format(new Date(d.date), 'HH:mm')}</span>
-                    }
-                  </span>
+            {dates.map((d) => {
+              const { dateLabel, timeLabel } = formatDateRange(d.date, d.end_time)
+              return (
+                <div key={d.id} className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-gray-800 font-medium">
+                      {dateLabel}
+                      {timeLabel && <span className="text-gray-400 ml-1 text-xs">{timeLabel}</span>}
+                    </span>
+                  </div>
+                  <ResponseButtons
+                    dateId={d.id}
+                    value={draft[d.id]}
+                    onChange={(dateId, res) => setDraft((prev) => ({ ...prev, [dateId]: res }))}
+                  />
                 </div>
-                <ResponseButtons
-                  dateId={d.id}
-                  value={draft[d.id]}
-                  onChange={(dateId, res) => setDraft((prev) => ({ ...prev, [dateId]: res }))}
-                />
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <button
@@ -507,21 +716,22 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                       )}
                     </div>
                     <div className="space-y-2">
-                      {dates.map((d) => (
-                        <div key={d.id} className="flex items-center gap-3">
-                          <div className="flex-1 min-w-0 text-xs text-gray-600 font-medium">
-                            {format(new Date(d.date), 'M/d(E)', { locale: ja })}
-                            {(new Date(d.date).getHours() !== 0 || new Date(d.date).getMinutes() !== 0) &&
-                              <span className="text-gray-400 ml-1">{format(new Date(d.date), 'HH:mm')}</span>
-                            }
+                      {dates.map((d) => {
+                        const { dateLabel, timeLabel } = formatDateRange(d.date, d.end_time)
+                        return (
+                          <div key={d.id} className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0 text-xs text-gray-600 font-medium">
+                              {dateLabel}
+                              {timeLabel && <span className="text-gray-400 ml-1">{timeLabel}</span>}
+                            </div>
+                            <ResponseButtons
+                              dateId={d.id}
+                              value={entry.draft[d.id]}
+                              onChange={(dateId, res) => updateProxyDraft(i, dateId, res)}
+                            />
                           </div>
-                          <ResponseButtons
-                            dateId={d.id}
-                            value={entry.draft[d.id]}
-                            onChange={(dateId, res) => updateProxyDraft(i, dateId, res)}
-                          />
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 ))}
@@ -547,6 +757,389 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
       </main>
+
+      {showDateEditor && (
+        <DateEditorModal
+          eventId={id}
+          dates={dates}
+          onClose={() => setShowDateEditor(false)}
+          onSaved={loadData}
+        />
+      )}
+
+      {showCoverEdit && event && (
+        <CoverEditorModal
+          eventId={id}
+          title={event.title}
+          currentUrl={event.cover_image_url ?? ''}
+          onClose={() => setShowCoverEdit(false)}
+          onSaved={loadData}
+        />
+      )}
+    </div>
+  )
+}
+
+interface DraftDate {
+  id?: string
+  date: string
+  time: string
+  endTime: string
+  _deleted?: boolean
+  _new?: boolean
+}
+
+function DateEditorModal({
+  eventId,
+  dates,
+  onClose,
+  onSaved,
+}: {
+  eventId: string
+  dates: EventDate[]
+  onClose: () => void
+  onSaved: () => Promise<void> | void
+}) {
+  const toLocal = (iso: string) => {
+    const d = new Date(iso)
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    return { date: `${yyyy}-${mm}-${dd}`, time: hh === '00' && mi === '00' ? '' : `${hh}:${mi}` }
+  }
+  const toTimeOnly = (iso: string | null | undefined) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  }
+
+  const [drafts, setDrafts] = useState<DraftDate[]>(() =>
+    dates.map((d) => {
+      const { date, time } = toLocal(d.date)
+      return { id: d.id, date, time, endTime: toTimeOnly(d.end_time) }
+    })
+  )
+  const [saving, setSaving] = useState(false)
+
+  const update = (i: number, field: 'date' | 'time' | 'endTime', v: string) =>
+    setDrafts((prev) => prev.map((d, idx) => idx === i ? { ...d, [field]: v } : d))
+
+  const remove = (i: number) =>
+    setDrafts((prev) => prev.map((d, idx) => idx === i ? { ...d, _deleted: true } : d))
+
+  const undo = (i: number) =>
+    setDrafts((prev) => prev.map((d, idx) => idx === i ? { ...d, _deleted: false } : d))
+
+  const addNew = () =>
+    setDrafts((prev) => [...prev, { date: '', time: '', endTime: '', _new: true }])
+
+  const save = async () => {
+    const toBuildIso = (d: DraftDate) => {
+      const startStr = d.time ? `${d.date}T${d.time}:00` : `${d.date}T00:00:00`
+      const endIso = d.time && d.endTime ? new Date(`${d.date}T${d.endTime}:00`).toISOString() : null
+      return { startIso: new Date(startStr).toISOString(), endIso }
+    }
+    const visible = drafts.filter((d) => !d._deleted)
+    if (visible.length === 0) return alert('少なくとも1件の候補が必要です')
+    for (const d of visible) {
+      if (!d.date) return alert('すべての候補に日付を入力してください')
+    }
+    setSaving(true)
+    try {
+      const toDelete = drafts.filter((d) => d._deleted && d.id).map((d) => d.id as string)
+      if (toDelete.length > 0) {
+        await supabase.from('event_responses').delete().in('event_date_id', toDelete)
+        await supabase.from('event_dates').delete().in('id', toDelete)
+      }
+      const toInsert = drafts.filter((d) => d._new && !d._deleted).map((d) => {
+        const { startIso, endIso } = toBuildIso(d)
+        return { event_id: eventId, date: startIso, end_time: endIso }
+      })
+      if (toInsert.length > 0) {
+        await supabase.from('event_dates').insert(toInsert)
+      }
+      const toUpdate = drafts.filter((d) => !d._new && !d._deleted && d.id)
+      for (const d of toUpdate) {
+        const orig = dates.find((x) => x.id === d.id)
+        if (!orig) continue
+        const { startIso, endIso } = toBuildIso(d)
+        const origEndIso = orig.end_time ? new Date(orig.end_time).toISOString() : null
+        if (orig.date !== startIso || origEndIso !== endIso) {
+          await supabase.from('event_dates').update({ date: startIso, end_time: endIso }).eq('id', d.id as string)
+        }
+      }
+      await onSaved()
+      onClose()
+    } catch (e) {
+      alert(`保存に失敗しました: ${e}`)
+    }
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <CalendarCog size={16} className="text-[#2563eb]" />
+            <h3 className="font-semibold text-gray-900 text-sm">候補日時を編集</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
+          {drafts.map((d, i) => (
+            <div key={i} className={`flex items-center gap-2 flex-wrap p-2 rounded-xl ${d._deleted ? 'bg-red-50 opacity-60' : 'bg-gray-50'}`}>
+              <span className="text-xs text-gray-400 w-4 text-center">{i + 1}</span>
+              <input
+                type="date"
+                value={d.date}
+                disabled={d._deleted}
+                onChange={(e) => update(i, 'date', e.target.value)}
+                className="flex-1 min-w-[120px] text-sm text-gray-800 border border-gray-200 rounded-lg px-2 py-1.5 bg-white disabled:bg-gray-100"
+              />
+              <input
+                type="time"
+                value={d.time}
+                disabled={d._deleted}
+                onChange={(e) => update(i, 'time', e.target.value)}
+                className="w-20 text-sm text-gray-800 border border-gray-200 rounded-lg px-2 py-1.5 bg-white disabled:bg-gray-100"
+              />
+              <span className="text-xs text-gray-400">〜</span>
+              <input
+                type="time"
+                value={d.endTime}
+                disabled={d._deleted || !d.time}
+                onChange={(e) => update(i, 'endTime', e.target.value)}
+                className="w-20 text-sm text-gray-800 border border-gray-200 rounded-lg px-2 py-1.5 bg-white disabled:bg-gray-100"
+              />
+              {d._deleted ? (
+                <button onClick={() => undo(i)} className="text-xs text-blue-500 hover:text-blue-700 px-2">戻す</button>
+              ) : (
+                <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-400 transition-colors">
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+          ))}
+          <button
+            onClick={addNew}
+            className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 px-3 py-2.5 border border-dashed border-gray-300 rounded-xl hover:border-gray-400 transition-colors"
+          >
+            <Plus size={14} /> 候補を追加
+          </button>
+        </div>
+        <div className="flex gap-2 px-5 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            キャンセル
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type CoverTab = 'url' | 'ai' | 'gallery'
+
+function CoverEditorModal({
+  eventId,
+  title,
+  currentUrl,
+  onClose,
+  onSaved,
+}: {
+  eventId: string
+  title: string
+  currentUrl: string
+  onClose: () => void
+  onSaved: () => Promise<void> | void
+}) {
+  const [url, setUrl] = useState(currentUrl)
+  const [saving, setSaving] = useState(false)
+  const [fetching, setFetching] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [tab, setTab] = useState<CoverTab>('url')
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const [aiInfo, setAiInfo] = useState<{ keyword?: string; source?: string; note?: string } | null>(null)
+
+  const aiFetch = async () => {
+    setFetching(true)
+    setAiInfo(null)
+    try {
+      const res = await fetch('/api/events/cover-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      })
+      const json = await res.json()
+      if (json.url) {
+        setUrl(json.url)
+        setAiInfo({ keyword: json.keyword, source: json.source, note: json.note })
+      } else alert('取得に失敗しました')
+    } catch {
+      alert('取得に失敗しました')
+    }
+    setFetching(false)
+  }
+
+  const handleFile = async (file: File) => {
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/events/upload-cover', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) {
+        alert(json.error ?? 'アップロードに失敗しました')
+      } else if (json.url) {
+        setUrl(json.url)
+      }
+    } catch (e) {
+      alert(`アップロード失敗: ${e}`)
+    }
+    setUploading(false)
+  }
+
+  const save = async () => {
+    setSaving(true)
+    const { error } = await supabase.from('events').update({ cover_image_url: url.trim() || null }).eq('id', eventId)
+    setSaving(false)
+    if (error) return alert(`保存に失敗: ${error.message}`)
+    await onSaved()
+    onClose()
+  }
+
+  const tabBtn = (key: CoverTab, label: string) => (
+    <button
+      onClick={() => setTab(key)}
+      className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors ${
+        tab === key ? 'border-[#2563eb] text-[#2563eb]' : 'border-transparent text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <ImageIcon size={16} className="text-[#2563eb]" />
+            <h3 className="font-semibold text-gray-900 text-sm">カバー画像を変更</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-5 pt-4 pb-2 flex-shrink-0">
+          <div className="rounded-xl overflow-hidden aspect-[16/7] bg-gray-100 border border-gray-200">
+            {url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={url} alt="preview" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full" style={{ background: gradientFor(title) }} />
+            )}
+          </div>
+        </div>
+
+        <div className="flex border-b border-gray-100 px-2 flex-shrink-0">
+          {tabBtn('url', 'URL/アップロード')}
+          {tabBtn('ai', 'AI生成')}
+          {tabBtn('gallery', 'ギャラリー')}
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          {tab === 'url' && (
+            <>
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">画像URL</label>
+                <input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://... または下のボタンから"
+                  className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                />
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                {uploading ? <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" /> : <Upload size={14} />}
+                {uploading ? 'アップロード中…' : 'ファイルから選択 (5MBまで)'}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) handleFile(f)
+                  e.target.value = ''
+                }}
+              />
+            </>
+          )}
+          {tab === 'ai' && (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500 leading-relaxed">
+                タイトル「<span className="font-medium text-gray-700">{title}</span>」を英語キーワードに変換して Unsplash から関連画像を取得します。
+              </p>
+              <button
+                onClick={aiFetch}
+                disabled={fetching}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-[#2563eb] border border-[#2563eb]/30 rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-colors"
+              >
+                {fetching ? <div className="w-4 h-4 border-2 border-[#2563eb]/40 border-t-[#2563eb] rounded-full animate-spin" /> : <Sparkles size={14} />}
+                {aiInfo ? '別の画像を生成' : 'AI生成'}
+              </button>
+              {aiInfo && (
+                <div className="text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 space-y-0.5">
+                  {aiInfo.keyword && <div>キーワード: <span className="text-gray-700 font-medium">{aiInfo.keyword}</span></div>}
+                  {aiInfo.source && (
+                    <div>
+                      ソース: <span className={`font-medium ${aiInfo.source === 'unsplash' ? 'text-green-600' : 'text-amber-600'}`}>{aiInfo.source}</span>
+                    </div>
+                  )}
+                  {aiInfo.note && <div className="text-amber-600">{aiInfo.note}</div>}
+                </div>
+              )}
+            </div>
+          )}
+          {tab === 'gallery' && (
+            <GalleryPicker onSelect={(u) => setUrl(u)} selectedUrl={url} />
+          )}
+        </div>
+        <div className="flex gap-2 px-5 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="flex-1 py-2.5 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
+            キャンセル
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
+            保存する
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

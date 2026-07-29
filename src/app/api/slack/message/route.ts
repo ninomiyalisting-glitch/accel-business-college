@@ -23,18 +23,27 @@ async function sbFetch(path: string, options: RequestInit) {
   })
 }
 
+const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
+
 // Edit message
 export async function PATCH(req: NextRequest) {
-  const { messageId, channelName, messageCreatedAt, content, userName } = await req.json()
+  const { messageId, channelName, messageCreatedAt, content, userName, slackUserId } = await req.json()
   if (!messageId || !content || !userName) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Verify ownership
-  const checkRes = await sbFetch(`/messages?id=eq.${messageId}&user_name=eq.${encodeURIComponent(userName)}&select=id&limit=1`, { method: 'GET' })
-  const rows: { id: string }[] = checkRes.ok ? await checkRes.json() : []
+  // Verify ownership: user_name 一致 / slack_user_id 一致 / 管理者 のいずれか
+  const checkRes = await sbFetch(`/messages?id=eq.${messageId}&select=id,user_name,slack_user_id&limit=1`, { method: 'GET' })
+  const rows: { id: string; user_name: string; slack_user_id: string | null }[] = checkRes.ok ? await checkRes.json() : []
   if (rows.length === 0) {
-    return NextResponse.json({ error: 'Not found or not owner' }, { status: 403 })
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  const row = rows[0]
+  const isAdmin = slackUserId === ADMIN_SLACK_USER_ID
+  const sameSlackId = !!slackUserId && !!row.slack_user_id && row.slack_user_id === slackUserId
+  const sameUserName = row.user_name === userName
+  if (!isAdmin && !sameSlackId && !sameUserName) {
+    return NextResponse.json({ error: 'Not owner' }, { status: 403 })
   }
 
   // Update in Supabase
@@ -64,19 +73,26 @@ export async function PATCH(req: NextRequest) {
 
 // Delete message
 export async function DELETE(req: NextRequest) {
-  const { messageId, channelName, messageCreatedAt, userName } = await req.json()
+  const { messageId, channelName, messageCreatedAt, userName, slackUserId } = await req.json()
   if (!messageId || !userName) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  // Verify ownership
-  const checkRes = await sbFetch(`/messages?id=eq.${messageId}&user_name=eq.${encodeURIComponent(userName)}&select=id,channel_id&limit=1`, { method: 'GET' })
-  const rows: { id: string; channel_id: string }[] = checkRes.ok ? await checkRes.json() : []
+  // Verify ownership: user_name 一致 / slack_user_id 一致 / 管理者 のいずれか
+  const checkRes = await sbFetch(`/messages?id=eq.${messageId}&select=id,channel_id,user_name,slack_user_id&limit=1`, { method: 'GET' })
+  const rows: { id: string; channel_id: string; user_name: string; slack_user_id: string | null }[] = checkRes.ok ? await checkRes.json() : []
   if (rows.length === 0) {
-    return NextResponse.json({ error: 'Not found or not owner' }, { status: 403 })
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+  const row = rows[0]
+  const isAdmin = slackUserId === ADMIN_SLACK_USER_ID
+  const sameSlackId = !!slackUserId && !!row.slack_user_id && row.slack_user_id === slackUserId
+  const sameUserName = row.user_name === userName
+  if (!isAdmin && !sameSlackId && !sameUserName) {
+    return NextResponse.json({ error: 'Not owner' }, { status: 403 })
   }
 
-  const channelId = rows[0].channel_id
+  const channelId = row.channel_id
 
   // Delete reactions for this message first
   if (messageCreatedAt) {

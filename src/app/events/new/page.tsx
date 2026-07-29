@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Plus, Trash2, CalendarDays, Send } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, CalendarDays, Send, Image as ImageIcon, Sparkles, Upload, GalleryHorizontal } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { GalleryPicker } from '@/components/GalleryPicker'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 
@@ -17,6 +18,7 @@ interface Channel {
 interface DateSlot {
   date: string
   time: string
+  endTime: string
 }
 
 export default function NewEventPage() {
@@ -28,9 +30,14 @@ export default function NewEventPage() {
   const [deadline, setDeadline] = useState('')
   const [notifyChannelId, setNotifyChannelId] = useState('')
   const [dateSlots, setDateSlots] = useState<DateSlot[]>([
-    { date: '', time: '' },
-    { date: '', time: '' },
+    { date: '', time: '', endTime: '' },
+    { date: '', time: '', endTime: '' },
   ])
+  const [coverImageUrl, setCoverImageUrl] = useState('')
+  const [fetchingCover, setFetchingCover] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [showGallery, setShowGallery] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -47,10 +54,43 @@ export default function NewEventPage() {
     })
   }, [])
 
-  const addSlot = () => setDateSlots((prev) => [...prev, { date: '', time: '' }])
+  const addSlot = () => setDateSlots((prev) => [...prev, { date: '', time: '', endTime: '' }])
   const removeSlot = (i: number) => setDateSlots((prev) => prev.filter((_, idx) => idx !== i))
-  const updateSlot = (i: number, field: 'date' | 'time', val: string) =>
+  const updateSlot = (i: number, field: 'date' | 'time' | 'endTime', val: string) =>
     setDateSlots((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s))
+
+  const fetchCoverFromTitle = async () => {
+    if (!title.trim()) return alert('先にタイトルを入力してください')
+    setFetchingCover(true)
+    try {
+      const res = await fetch('/api/events/cover-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() }),
+      })
+      const json = await res.json()
+      if (json.url) setCoverImageUrl(json.url)
+      else alert('画像の取得に失敗しました')
+    } catch {
+      alert('画像の取得に失敗しました')
+    }
+    setFetchingCover(false)
+  }
+
+  const uploadCoverFile = async (file: File) => {
+    setUploadingCover(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/events/upload-cover', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) alert(json.error ?? 'アップロードに失敗しました')
+      else if (json.url) setCoverImageUrl(json.url)
+    } catch (e) {
+      alert(`アップロード失敗: ${e}`)
+    }
+    setUploadingCover(false)
+  }
 
   const handleSubmit = async () => {
     if (!myName) return alert('Slackログインが必要です')
@@ -68,6 +108,7 @@ export default function NewEventPage() {
           description: description.trim() || null,
           created_by: myName,
           deadline: deadline ? new Date(deadline).toISOString() : null,
+          cover_image_url: coverImageUrl.trim() || null,
         })
         .select()
         .single()
@@ -76,8 +117,13 @@ export default function NewEventPage() {
 
       // Create event_dates
       const dateRows = validSlots.map((s) => {
-        const dt = s.time ? `${s.date}T${s.time}:00` : `${s.date}T00:00:00`
-        return { event_id: ev.id, date: new Date(dt).toISOString() }
+        const startStr = s.time ? `${s.date}T${s.time}:00` : `${s.date}T00:00:00`
+        const endStr = s.time && s.endTime ? `${s.date}T${s.endTime}:00` : null
+        return {
+          event_id: ev.id,
+          date: new Date(startStr).toISOString(),
+          end_time: endStr ? new Date(endStr).toISOString() : null,
+        }
       })
       const { error: datesErr } = await supabase.from('event_dates').insert(dateRows)
       if (datesErr) throw new Error(datesErr.message)
@@ -166,6 +212,77 @@ export default function NewEventPage() {
               className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] resize-none"
             />
           </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+              <ImageIcon size={12} /> カバー画像（任意）
+            </label>
+            <input
+              type="url"
+              value={coverImageUrl}
+              onChange={(e) => setCoverImageUrl(e.target.value)}
+              placeholder="画像URLを直接入力 / 下のボタンから選択もOK"
+              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+            />
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingCover}
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-gray-700 border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 transition-colors"
+              >
+                {uploadingCover
+                  ? <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-gray-700 rounded-full animate-spin" />
+                  : <Upload size={13} />}
+                {uploadingCover ? '...' : 'アップロード'}
+              </button>
+              <button
+                type="button"
+                onClick={fetchCoverFromTitle}
+                disabled={fetchingCover}
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-[#2563eb] border border-[#2563eb]/30 rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-colors"
+              >
+                {fetchingCover
+                  ? <div className="w-3.5 h-3.5 border-2 border-[#2563eb]/40 border-t-[#2563eb] rounded-full animate-spin" />
+                  : <Sparkles size={13} />}
+                AI生成
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowGallery((v) => !v)}
+                className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs border rounded-xl transition-colors ${
+                  showGallery ? 'border-[#2563eb] text-[#2563eb] bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <GalleryHorizontal size={13} />
+                ギャラリー
+              </button>
+            </div>
+            {showGallery && (
+              <div className="mt-3 p-3 border border-gray-200 rounded-xl bg-gray-50/50">
+                <GalleryPicker
+                  selectedUrl={coverImageUrl}
+                  onSelect={(u) => setCoverImageUrl(u)}
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) uploadCoverFile(f)
+                e.target.value = ''
+              }}
+            />
+            {coverImageUrl && (
+              <div className="mt-2 rounded-xl overflow-hidden border border-gray-200 aspect-[16/7] bg-gray-50">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverImageUrl} alt="cover" loading="lazy" decoding="async" className="w-full h-full object-cover" />
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">回答締切（任意）</label>
@@ -206,20 +323,29 @@ export default function NewEventPage() {
 
           <div className="space-y-2.5">
             {dateSlots.map((slot, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
                 <span className="text-xs text-gray-400 w-4 text-center flex-shrink-0">{i + 1}</span>
                 <input
                   type="date"
                   value={slot.date}
                   onChange={(e) => updateSlot(i, 'date', e.target.value)}
-                  className="flex-1 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="flex-1 min-w-[120px] text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
                 />
                 <input
                   type="time"
                   value={slot.time}
                   onChange={(e) => updateSlot(i, 'time', e.target.value)}
-                  className="w-28 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
-                  placeholder="未定"
+                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  placeholder="開始"
+                />
+                <span className="text-xs text-gray-400">〜</span>
+                <input
+                  type="time"
+                  value={slot.endTime}
+                  onChange={(e) => updateSlot(i, 'endTime', e.target.value)}
+                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  placeholder="終了"
+                  disabled={!slot.time}
                 />
                 {dateSlots.length > 1 && (
                   <button onClick={() => removeSlot(i)} className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0">
@@ -228,6 +354,7 @@ export default function NewEventPage() {
                 )}
               </div>
             ))}
+            <p className="text-[11px] text-gray-400 pl-6">開始時刻のみでもOK。終了時刻は任意です。</p>
           </div>
         </div>
 

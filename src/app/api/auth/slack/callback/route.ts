@@ -138,5 +138,14 @@ export async function GET(request: NextRequest) {
 
   const successUrl = `${baseUrl}/chat?${params.toString()}`
   console.log('[slack/callback] redirecting to:', successUrl.substring(0, 100))
-  return NextResponse.redirect(successUrl)
+  const response = NextResponse.redirect(successUrl)
+  // 認証済みマーカー Cookie（middleware / API 認可用）
+  response.cookies.set('abc_slack_user_id', slackUserId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 90, // 90 days
+  })
+  return response
 }

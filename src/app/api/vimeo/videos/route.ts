@@ -62,6 +62,57 @@ async function fetchPage(
   }
 }
 
+// recursive=1 用: project の items を取得し、video / folder を区別して返す
+async function fetchProjectItems(
+  projectId: string,
+  token: string
+): Promise<{ folders: string[]; videos: unknown[] }> {
+  const folders: string[] = []
+  const videos: unknown[] = []
+  let nextUrl: string | null =
+    `${VIMEO_BASE}/me/projects/${projectId}/items?per_page=100&fields=type,folder.uri,video.${FIELDS.replace(/,/g, ',video.')}`
+  let page = 0
+  while (nextUrl && page < 10) {
+    const { data, next }: { data: unknown[]; next: string | null } = await fetchPage(nextUrl, token)
+    for (const raw of data) {
+      const item = raw as { type?: string; folder?: { uri?: string }; video?: unknown }
+      if (item.type === 'folder' && item.folder?.uri) {
+        const id = item.folder.uri.split('/').pop()
+        if (id) folders.push(id)
+      } else if (item.type === 'video' && item.video) {
+        videos.push(item.video)
+      }
+    }
+    nextUrl = next
+    page++
+  }
+  return { folders, videos }
+}
+
+async function fetchVideosRecursive(rootProjectId: string, token: string): Promise<unknown[]> {
+  const all: unknown[] = []
+  const seen = new Set<string>()  // 動画の uri で重複排除
+  const queue: string[] = [rootProjectId]
+  const visited = new Set<string>()
+  while (queue.length > 0) {
+    const id = queue.shift()!
+    if (visited.has(id)) continue
+    visited.add(id)
+    const { folders, videos } = await fetchProjectItems(id, token)
+    for (const v of videos) {
+      const uri = (v as { uri?: string }).uri ?? ''
+      if (uri && !seen.has(uri)) {
+        seen.add(uri)
+        all.push(v)
+      }
+    }
+    for (const f of folders) {
+      if (!visited.has(f)) queue.push(f)
+    }
+  }
+  return all
+}
+
 export async function GET(req: NextRequest) {
   const token = (process.env.VIMEO_ACCESS_TOKEN ?? '').trim()
   if (!token) {
@@ -70,6 +121,21 @@ export async function GET(req: NextRequest) {
 
   const albumId = req.nextUrl.searchParams.get('album_id')
   const projectId = req.nextUrl.searchParams.get('project_id')
+  const recursive = req.nextUrl.searchParams.get('recursive') === '1' || req.nextUrl.searchParams.get('recursive') === 'true'
+
+  // recursive=1 (project_id 必須): サブフォルダを再帰的に展開して全ての動画を集める
+  if (recursive && projectId) {
+    console.log(`[vimeo/videos] recursive fetch starting from project=${projectId}`)
+    const videos = await fetchVideosRecursive(projectId, token)
+    // sort by created_time desc
+    videos.sort((a, b) => {
+      const ta = new Date((a as { created_time: string }).created_time).getTime()
+      const tb = new Date((b as { created_time: string }).created_time).getTime()
+      return tb - ta
+    })
+    console.log(`[vimeo/videos] recursive total: ${videos.length}`)
+    return NextResponse.json({ data: videos, total: videos.length })
+  }
 
   const startUrl = projectId
     ? `${VIMEO_BASE}/me/projects/${projectId}/videos?per_page=100&fields=${FIELDS}&sort=date&direction=desc`

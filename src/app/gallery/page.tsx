@@ -651,7 +651,7 @@ export default function GalleryPage() {
               )}
               <div className="flex items-center justify-center gap-2">
                 {modalPhoto.uploader_avatar ? (
-                  <img src={modalPhoto.uploader_avatar} alt={modalPhoto.uploader_name} className="w-5 h-5 rounded-full" />
+                  <img src={modalPhoto.uploader_avatar} alt={modalPhoto.uploader_name} loading="lazy" decoding="async" width={20} height={20} className="w-5 h-5 rounded-full" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
                     <span className="text-white text-[10px]">{modalPhoto.uploader_name[0]}</span>
@@ -777,7 +777,7 @@ export default function GalleryPage() {
                 <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto">
                   {uploadPreviews.map((src, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100 group">
-                      <img src={src} alt="" className="w-full h-full object-cover" />
+                      <img src={src} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeFile(idx)}
                         className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"

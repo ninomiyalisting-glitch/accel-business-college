@@ -32,6 +32,7 @@ export interface Message {
   thread_ts?: string | null
   files_json?: SlackFile[] | null
   avatar_url?: string | null
+  slack_user_id?: string | null
 }
 
 export interface ReactionCount {

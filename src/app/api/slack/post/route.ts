@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { CHANNEL_NAME_TO_SLACK_ID } from '@/lib/slackChannels'
 
+function isoToSlackTs(iso: string): string {
+  const ms = new Date(iso).getTime()
+  const seconds = Math.floor(ms / 1000)
+  const frac = String(ms % 1000).padStart(3, '0') + '000'
+  return `${seconds}.${frac}`
+}
+
 export async function POST(req: NextRequest) {
   const botToken = (process.env.SLACK_BOT_TOKEN ?? '').trim()
   if (!botToken) {
     return NextResponse.json({ error: 'SLACK_BOT_TOKEN not configured' }, { status: 500 })
   }
 
-  const { channelName, userName, content, avatarUrl } = await req.json()
+  const { channelName, userName, content, avatarUrl, threadTs } = await req.json()
   if (!channelName || !content) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
@@ -31,6 +38,9 @@ export async function POST(req: NextRequest) {
     body.icon_url = avatarUrl
   } else {
     body.icon_emoji = ':speech_balloon:'
+  }
+  if (threadTs) {
+    body.thread_ts = isoToSlackTs(threadTs)
   }
 
   try {

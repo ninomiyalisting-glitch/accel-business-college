@@ -15,6 +15,16 @@ const USER_NAME_KEY = 'abc_userName'
 
 type AvatarMap = Record<string, string>
 type UserInfoMap = Record<string, MemberInfo>
+type UserBySlackId = Record<string, { displayName: string; avatarUrl: string | null }>
+
+// PostgreSQL TIMESTAMPTZ は初期 SELECT と Realtime payload で文字列書式
+// (microsecond 精度・タイムゾーン表記) が一致しない場合があるため、
+// reactionsMap のキーは epoch ms 文字列に正規化して照合する
+function tsKey(ts: string | null | undefined): string {
+  if (!ts) return ''
+  const t = new Date(ts).getTime()
+  return Number.isFinite(t) ? String(t) : ts
+}
 
 export default function ChatPage() {
   return (
@@ -38,6 +48,7 @@ function ChatContent() {
   const [slackUser, setSlackUser] = useState<SlackUser | null>(null)
   const [avatarMap, setAvatarMap] = useState<AvatarMap>({})
   const [userInfoMap, setUserInfoMap] = useState<UserInfoMap>({})
+  const [userBySlackId, setUserBySlackId] = useState<UserBySlackId>({})
   const [customEmojis, setCustomEmojis] = useState<CustomEmojis>({})
   const [showUserNameDialog, setShowUserNameDialog] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -100,15 +111,17 @@ function ChatContent() {
       .catch(() => {})
   }, [])
 
-  // users テーブルからアバターマップ + ユーザー情報マップを取得
+  // users テーブルからアバターマップ + ユーザー情報マップ + slack_user_id マップを取得
   useEffect(() => {
     const fetchAvatars = async () => {
       const { data } = await supabase
         .from('users')
         .select('display_name, avatar_url, slack_user_id')
+        .limit(5000)
       if (data) {
         const amap: AvatarMap = {}
         const umap: UserInfoMap = {}
+        const byId: UserBySlackId = {}
         for (const u of data) {
           if (!u.display_name) continue
           if (u.avatar_url) amap[u.display_name] = u.avatar_url
@@ -117,9 +130,17 @@ function ChatContent() {
             avatarUrl: u.avatar_url ?? null,
             slackUserId: u.slack_user_id ?? null,
           }
+          if (u.slack_user_id) {
+            byId[u.slack_user_id] = {
+              displayName: u.display_name,
+              avatarUrl: u.avatar_url ?? null,
+            }
+          }
         }
         setAvatarMap(amap)
         setUserInfoMap(umap)
+        setUserBySlackId(byId)
+        console.log(`[fetchAvatars] users loaded: ${data.length} (slackId-keyed: ${Object.keys(byId).length})`)
       }
     }
     fetchAvatars()
@@ -232,30 +253,49 @@ function ChatContent() {
 
     const fetchMessages = async () => {
       console.log(`[fetchMessages] channel: "${selectedChannel.name}" id: ${selectedChannel.id}`)
-      const [messagesResult, reactionsResult] = await Promise.all([
-        supabase
-          .from('messages')
-          .select('*')
-          .eq('channel_id', selectedChannel.id)
-          .order('created_at', { ascending: false })
-          .limit(1000),
-        supabase
-          .from('message_reactions')
-          .select('message_created_at, reaction, user_name')
-          .eq('channel_id', selectedChannel.id),
-      ])
 
-      console.log(`[fetchMessages] result: count=${messagesResult.data?.length ?? 0} error=${messagesResult.error?.message ?? 'none'} status=${messagesResult.status}`)
+      // ① メッセージを先に取得（最新300件）
+      const messagesResult = await supabase
+        .from('messages')
+        .select('*')
+        .eq('channel_id', selectedChannel.id)
+        .order('created_at', { ascending: false })
+        .limit(300)
+
+      console.log(`[fetchMessages] messages: count=${messagesResult.data?.length ?? 0} error=${messagesResult.error?.message ?? 'none'}`)
 
       if (!messagesResult.error && messagesResult.data && isMounted) {
         setMessages(messagesResult.data.reverse())
-        setHasMore(messagesResult.data.length === 1000)
+        setHasMore(messagesResult.data.length === 300)
       }
+
+      // ② リアクションを取得: 取得したメッセージの最古 created_at 以降に絞り、
+      //    message_created_at DESC + 高めの limit で新しい行が切れ落ちないようにする
+      //    (デフォルトの 1000 行制限・id 昇順で古い側が返ってしまう問題を回避)
+      let oldestMessageCreatedAt: string | null = null
+      if (messagesResult.data && messagesResult.data.length > 0) {
+        oldestMessageCreatedAt = messagesResult.data
+          .map((m) => m.created_at)
+          .reduce((a, b) => (a < b ? a : b))
+      }
+
+      let reactionsQuery = supabase
+        .from('message_reactions')
+        .select('message_created_at, reaction, user_name')
+        .eq('channel_id', selectedChannel.id)
+        .order('message_created_at', { ascending: false })
+        .limit(10000)
+      if (oldestMessageCreatedAt) {
+        reactionsQuery = reactionsQuery.gte('message_created_at', oldestMessageCreatedAt)
+      }
+      const reactionsResult = await reactionsQuery
+
+      console.log(`[fetchMessages] reactions: count=${reactionsResult.data?.length ?? 0} error=${reactionsResult.error?.message ?? 'none'} oldestBound=${oldestMessageCreatedAt ?? 'null'}`)
 
       if (!reactionsResult.error && reactionsResult.data && isMounted) {
         const counts: Record<string, Record<string, { count: number; users: string[] }>> = {}
         for (const r of reactionsResult.data) {
-          const key = r.message_created_at
+          const key = tsKey(r.message_created_at)
           counts[key] ??= {}
           counts[key][r.reaction] ??= { count: 0, users: [] }
           counts[key][r.reaction].count++
@@ -268,6 +308,20 @@ function ChatContent() {
             .sort((a, b) => b.count - a.count)
         }
         setReactionsMap(map)
+
+        // ③ 診断: 最新メッセージ3件のtsKeyと、その範囲のリアクションtsKey一致を確認
+        if (messagesResult.data && messagesResult.data.length > 0) {
+          const latest = messagesResult.data.slice(0, 3)
+          const reactionKeys = new Set(reactionsResult.data.map((r) => tsKey(r.message_created_at)))
+          console.log('[diag] latest 3 messages → reaction key match:',
+            latest.map((m) => ({
+              msgCreatedAt: m.created_at,
+              msgKey: tsKey(m.created_at),
+              hasReactionsInMap: reactionKeys.has(tsKey(m.created_at)),
+            }))
+          )
+          console.log(`[diag] total reaction keys in map: ${Object.keys(map).length}`)
+        }
       }
     }
 
@@ -312,22 +366,126 @@ function ChatContent() {
             reaction: string
             user_name: string
           }
+          const key = tsKey(message_created_at)
+          console.log('[realtime] reaction INSERT', {
+            message_created_at,
+            reaction,
+            user_name,
+            tsKey: key,
+          })
           setReactionsMap((prev) => {
-            const msgReactions = [...(prev[message_created_at] ?? [])]
+            const hadKey = key in prev
+            const msgReactions = [...(prev[key] ?? [])]
             const idx = msgReactions.findIndex((r) => r.reaction === reaction)
             if (idx >= 0) {
               const r = msgReactions[idx]
-              if (!r.users.includes(user_name)) {
-                msgReactions[idx] = { ...r, count: r.count + 1, users: [...r.users, user_name] }
-              }
+              if (r.users.includes(user_name)) return prev
+              msgReactions[idx] = { ...r, count: r.count + 1, users: [...r.users, user_name] }
             } else {
               msgReactions.push({ reaction, count: 1, users: user_name ? [user_name] : [] })
             }
-            return { ...prev, [message_created_at]: msgReactions }
+            console.log('[realtime] reaction INSERT applied', { key, hadKey, newCount: msgReactions.find((r) => r.reaction === reaction)?.count })
+            return { ...prev, [key]: msgReactions }
           })
         }
       )
-      .subscribe()
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'message_reactions',
+          filter: `channel_id=eq.${selectedChannel.id}`,
+        },
+        (payload) => {
+          if (!isMounted) return
+          console.log('[realtime] reaction DELETE payload.old:', payload.old)
+          const old = payload.old as Partial<{
+            message_created_at: string
+            reaction: string
+            user_name: string
+          }>
+          if (!old?.message_created_at || !old.reaction) return
+          const key = tsKey(old.message_created_at)
+          setReactionsMap((prev) => {
+            const msgReactions = [...(prev[key] ?? [])]
+            const idx = msgReactions.findIndex((r) => r.reaction === old.reaction)
+            if (idx < 0) return prev
+            const r = msgReactions[idx]
+            const newUsers = old.user_name ? r.users.filter((u) => u !== old.user_name) : r.users
+            const newCount = Math.max(0, r.count - 1)
+            if (newCount === 0) {
+              msgReactions.splice(idx, 1)
+            } else {
+              msgReactions[idx] = { ...r, count: newCount, users: newUsers }
+            }
+            const next = { ...prev }
+            if (msgReactions.length === 0) {
+              delete next[key]
+            } else {
+              next[key] = msgReactions
+            }
+            return next
+          })
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'message_reactions',
+          filter: `channel_id=eq.${selectedChannel.id}`,
+        },
+        (payload) => {
+          if (!isMounted) return
+          const oldRow = payload.old as Partial<{
+            message_created_at: string
+            reaction: string
+            user_name: string
+          }>
+          const newRow = payload.new as {
+            message_created_at: string
+            reaction: string
+            user_name: string
+          }
+          setReactionsMap((prev) => {
+            const next = { ...prev }
+            // remove old
+            if (oldRow?.message_created_at && oldRow.reaction) {
+              const oldKey = tsKey(oldRow.message_created_at)
+              const list = [...(next[oldKey] ?? [])]
+              const i = list.findIndex((r) => r.reaction === oldRow.reaction)
+              if (i >= 0) {
+                const r = list[i]
+                const users = oldRow.user_name ? r.users.filter((u) => u !== oldRow.user_name) : r.users
+                const cnt = Math.max(0, r.count - 1)
+                if (cnt === 0) list.splice(i, 1)
+                else list[i] = { ...r, count: cnt, users }
+                if (list.length === 0) delete next[oldKey]
+                else next[oldKey] = list
+              }
+            }
+            // add new
+            const newKey = tsKey(newRow.message_created_at)
+            const list = [...(next[newKey] ?? [])]
+            const i = list.findIndex((r) => r.reaction === newRow.reaction)
+            if (i >= 0) {
+              const r = list[i]
+              if (!r.users.includes(newRow.user_name)) {
+                list[i] = { ...r, count: r.count + 1, users: [...r.users, newRow.user_name] }
+              }
+            } else {
+              list.push({ reaction: newRow.reaction, count: 1, users: newRow.user_name ? [newRow.user_name] : [] })
+            }
+            next[newKey] = list
+            return next
+          })
+        }
+      )
+      .subscribe((status, err) => {
+        console.log(`[realtime] reactions subscription status: ${status}`, err ?? '')
+      })
 
     return () => {
       isMounted = false
@@ -347,24 +505,27 @@ function ChatContent() {
       .eq('channel_id', selectedChannel.id)
       .lt('created_at', oldest)
       .order('created_at', { ascending: false })
-      .limit(1000)
+      .limit(500)
 
     if (!error && data) {
       setMessages((prev) => [...data.reverse(), ...prev])
-      setHasMore(data.length === 1000)
+      setHasMore(data.length === 500)
     }
     loadingMoreRef.current = false
   }, [selectedChannel, messages])
 
   const handleSendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, threadTs?: string) => {
       if (!selectedChannel || !userName) return
 
-      const { error } = await supabase.from('messages').insert({
+      const insertPayload: Record<string, unknown> = {
         channel_id: selectedChannel.id,
         user_name: userName,
         content: content,
-      })
+      }
+      if (threadTs) insertPayload.thread_ts = threadTs
+
+      const { error } = await supabase.from('messages').insert(insertPayload)
 
       if (error) {
         console.error('メッセージ送信エラー:', error)
@@ -374,7 +535,13 @@ function ChatContent() {
       fetch('/api/slack/post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelName: selectedChannel.name, userName, content, avatarUrl: slackUser?.avatar_url ?? '' }),
+        body: JSON.stringify({
+          channelName: selectedChannel.name,
+          userName,
+          content,
+          avatarUrl: slackUser?.avatar_url ?? '',
+          threadTs: threadTs ?? null,
+        }),
       }).catch((err) => console.warn('Slack post failed:', err))
     },
     [selectedChannel, userName, slackUser]
@@ -392,8 +559,9 @@ function ChatContent() {
     async (msg: Message, reaction: string) => {
       if (!userName || !selectedChannel) return
 
+      const key = tsKey(msg.created_at)
       setReactionsMap((prev) => {
-        const msgReactions = [...(prev[msg.created_at] ?? [])]
+        const msgReactions = [...(prev[key] ?? [])]
         const idx = msgReactions.findIndex((r) => r.reaction === reaction)
         if (idx >= 0) {
           const r = msgReactions[idx]
@@ -411,7 +579,10 @@ function ChatContent() {
         } else {
           msgReactions.push({ reaction, count: 1, users: [userName] })
         }
-        return { ...prev, [msg.created_at]: msgReactions }
+        const next = { ...prev }
+        if (msgReactions.length === 0) delete next[key]
+        else next[key] = msgReactions
+        return next
       })
 
       fetch('/api/slack/reaction', {
@@ -527,11 +698,13 @@ function ChatContent() {
             onSendMessage={handleSendMessage}
             onMenuClick={() => setSidebarOpen(!sidebarOpen)}
             userName={userName}
+            currentSlackUserId={slackUser?.slack_user_id ?? null}
             hasMore={hasMore}
             onLoadMore={handleLoadMore}
             reactionsMap={reactionsMap}
             avatarMap={avatarMap}
             userInfoMap={userInfoMap}
+            userBySlackId={userBySlackId}
             customEmojis={customEmojis}
             channelMap={channelMap}
             onAddReaction={handleAddReaction}

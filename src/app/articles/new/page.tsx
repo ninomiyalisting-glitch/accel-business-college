@@ -14,6 +14,7 @@ interface Category {
   id: string
   name: string
   color: string
+  parent_id: string | null
 }
 
 export default function NewArticlePage() {
@@ -21,17 +22,21 @@ export default function NewArticlePage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const [parentCategoryId, setParentCategoryId] = useState('')  // 大カテゴリー
+  const [subCategoryId, setSubCategoryId] = useState('')         // 小カテゴリー (任意)
   const [coverImageUrl, setCoverImageUrl] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [slackUser, setSlackUser] = useState<{ slack_user_id: string; display_name: string; avatar_url?: string } | null>(null)
 
-  // inline new category
+  // inline new category (大カテゴリー追加用)
   const [showNewCat, setShowNewCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [creatingCat, setCreatingCat] = useState(false)
   const newCatInputRef = useRef<HTMLInputElement>(null)
+
+  // 保存に使う最終 category_id (小があれば小、無ければ大)
+  const categoryId = subCategoryId || parentCategoryId
 
   useEffect(() => {
     try {
@@ -41,7 +46,7 @@ export default function NewArticlePage() {
   }, [])
 
   useEffect(() => {
-    supabase.from('article_categories').select('id, name, color').order('name').then(({ data }) => {
+    supabase.from('article_categories').select('id, name, color, parent_id').order('name').then(({ data }) => {
       setCategories((data ?? []) as Category[])
     })
   }, [])
@@ -50,12 +55,17 @@ export default function NewArticlePage() {
     if (showNewCat) newCatInputRef.current?.focus()
   }, [showNewCat])
 
-  const handleSelectChange = (val: string) => {
+  const parentCategories = categories.filter((c) => !c.parent_id)
+  const subCategories = categories.filter((c) => c.parent_id === parentCategoryId)
+
+  const handleParentChange = (val: string) => {
     if (val === NEW_CAT_VALUE) {
       setShowNewCat(true)
-      setCategoryId('')
+      setParentCategoryId('')
+      setSubCategoryId('')
     } else {
-      setCategoryId(val)
+      setParentCategoryId(val)
+      setSubCategoryId('')   // 大カテゴリー変更で小はリセット
       setShowNewCat(false)
     }
   }
@@ -66,13 +76,14 @@ export default function NewArticlePage() {
     const { data, error } = await supabase
       .from('article_categories')
       .insert({ name: newCatName.trim(), color: '#2563eb' })
-      .select('id, name, color')
+      .select('id, name, color, parent_id')
       .single()
     setCreatingCat(false)
     if (error || !data) { alert('作成に失敗しました'); return }
     const cat = data as Category
     setCategories((prev) => [...prev, cat].sort((a, b) => a.name.localeCompare(b.name, 'ja')))
-    setCategoryId(cat.id)
+    setParentCategoryId(cat.id)
+    setSubCategoryId('')
     setNewCatName('')
     setShowNewCat(false)
   }
@@ -167,7 +178,7 @@ export default function NewArticlePage() {
           <label className="block text-xs font-medium text-gray-500 mb-2">カバー画像（任意）</label>
           {coverImageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverImageUrl} alt="カバー" className="w-full h-40 object-cover rounded-xl mb-3" />
+            <img src={coverImageUrl} alt="カバー" loading="lazy" decoding="async" className="w-full h-40 object-cover rounded-xl mb-3" />
           )}
           <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors">
             {uploading ? 'アップロード中...' : '画像を選択'}
@@ -184,44 +195,61 @@ export default function NewArticlePage() {
             placeholder="記事タイトル"
             className="w-full text-xl font-bold text-gray-900 placeholder-gray-300 focus:outline-none border-b border-gray-100 pb-3"
           />
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-xs font-medium text-gray-500 flex-shrink-0">カテゴリ</label>
-            {!showNewCat ? (
-              <select
-                value={categoryId}
-                onChange={(e) => handleSelectChange(e.target.value)}
-                className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1"
-              >
-                <option value="">なし</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-                <option value={NEW_CAT_VALUE}>＋ 新しいカテゴリーを作成</option>
-              </select>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <input
-                  ref={newCatInputRef}
-                  type="text"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="カテゴリー名"
-                  className="text-sm border border-[#2563eb] rounded-lg px-2 py-1 focus:outline-none w-36"
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
-                />
-                <button
-                  onClick={handleCreateCategory}
-                  disabled={creatingCat || !newCatName.trim()}
-                  className="w-6 h-6 flex items-center justify-center bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="text-xs font-medium text-gray-500 flex-shrink-0 w-20">大カテゴリー</label>
+              {!showNewCat ? (
+                <select
+                  value={parentCategoryId}
+                  onChange={(e) => handleParentChange(e.target.value)}
+                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1 bg-white"
                 >
-                  <Check size={13} />
-                </button>
-                <button
-                  onClick={() => { setShowNewCat(false); setNewCatName('') }}
-                  className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-gray-200 transition-colors"
+                  <option value="">なし</option>
+                  {parentCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  <option value={NEW_CAT_VALUE}>＋ 新しい大カテゴリーを作成</option>
+                </select>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    ref={newCatInputRef}
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="大カテゴリー名"
+                    className="text-sm border border-[#2563eb] rounded-lg px-2 py-1 focus:outline-none w-36"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
+                  />
+                  <button
+                    onClick={handleCreateCategory}
+                    disabled={creatingCat || !newCatName.trim()}
+                    className="w-6 h-6 flex items-center justify-center bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                  >
+                    <Check size={13} />
+                  </button>
+                  <button
+                    onClick={() => { setShowNewCat(false); setNewCatName('') }}
+                    className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+            {parentCategoryId && subCategories.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="text-xs font-medium text-gray-500 flex-shrink-0 w-20">小カテゴリー</label>
+                <select
+                  value={subCategoryId}
+                  onChange={(e) => setSubCategoryId(e.target.value)}
+                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1 bg-white"
                 >
-                  <X size={13} />
-                </button>
+                  <option value="">未指定（大カテゴリー直下）</option>
+                  {subCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

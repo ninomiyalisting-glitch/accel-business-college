@@ -79,16 +79,14 @@ export async function POST(req: NextRequest) {
   const members = await fetchAllSlackMembers(token)
   console.log(`[backfill-avatars] fetched ${members.length} members from Slack`)
 
-  // 2. Upsert all members into users table
-  const upsertRows = members
-    .map((m) => {
-      const displayName =
-        m.profile.display_name?.trim() || m.profile.real_name?.trim() || m.id
-      const avatarUrl =
-        m.profile.image_192 ?? m.profile.image_72 ?? m.profile.image_48 ?? null
-      return { slack_user_id: m.id, display_name: displayName, avatar_url: avatarUrl }
-    })
-    .filter((r) => r.avatar_url) // skip members with no avatar
+  // 2. Upsert all members into users table (アバター無しのメンバーも含めて全員)
+  const upsertRows = members.map((m) => {
+    const displayName =
+      m.profile.display_name?.trim() || m.profile.real_name?.trim() || m.id
+    const avatarUrl =
+      m.profile.image_192 ?? m.profile.image_72 ?? m.profile.image_48 ?? null
+    return { slack_user_id: m.id, display_name: displayName, avatar_url: avatarUrl }
+  })
 
   let usersUpserted = 0
   const BATCH = 50

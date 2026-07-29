@@ -15,6 +15,16 @@ export const metadata: Metadata = {
   title: "アクセルビジネスカレッジ",
   description: "アクセルビジネスカレッジ コミュニティ",
   manifest: "/manifest.json",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+    },
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",

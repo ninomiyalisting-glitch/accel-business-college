@@ -97,7 +97,7 @@ export default function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[9px] font-medium ${active ? 'text-[#60a5fa]' : 'text-white/50'}`}>
+              <span className={`text-[9px] font-medium max-[380px]:hidden ${active ? 'text-[#60a5fa]' : 'text-white/50'}`}>
                 {label}
               </span>
             </Link>

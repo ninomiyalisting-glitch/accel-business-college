@@ -23,6 +23,7 @@ interface Category {
   id: string
   name: string
   color: string
+  parent_id: string | null
 }
 
 interface Article {
@@ -36,11 +37,18 @@ interface Article {
   article_categories: Category | null
 }
 
-interface Section {
+interface ChildSection {
+  category: Category
+  articles: Article[]
+}
+
+interface ParentSection {
   key: string
   label: string
   color: string | null
-  articles: Article[]
+  directArticles: Article[]   // 大カテゴリー直下に紐付いた記事
+  children: ChildSection[]    // 小カテゴリーごとの記事
+  totalCount: number
 }
 
 export default function ArticlesPage() {
@@ -68,6 +76,7 @@ function ArticlesContent() {
   const [newCatName, setNewCatName] = useState('')
   const [newCatDesc, setNewCatDesc] = useState('')
   const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[0])
+  const [newCatParentId, setNewCatParentId] = useState('')
   const [savingCat, setSavingCat] = useState(false)
 
   useEffect(() => {
@@ -85,10 +94,10 @@ function ArticlesContent() {
     const [articlesRes, catsRes] = await Promise.all([
       supabase
         .from('articles')
-        .select('id, title, category_id, author_name, author_avatar, cover_image_url, created_at, article_categories(id, name, color)')
+        .select('id, title, category_id, author_name, author_avatar, cover_image_url, created_at, article_categories(id, name, color, parent_id)')
         .eq('published', true)
         .order('created_at', { ascending: false }),
-      supabase.from('article_categories').select('id, name, color').order('name'),
+      supabase.from('article_categories').select('id, name, color, parent_id').order('name'),
     ])
     setArticles((articlesRes.data ?? []) as unknown as Article[])
     setCategories((catsRes.data ?? []) as Category[])
@@ -110,8 +119,13 @@ function ArticlesContent() {
     setSavingCat(true)
     const { data, error } = await supabase
       .from('article_categories')
-      .insert({ name: newCatName.trim(), description: newCatDesc.trim() || null, color: newCatColor })
-      .select('id, name, color')
+      .insert({
+        name: newCatName.trim(),
+        description: newCatDesc.trim() || null,
+        color: newCatColor,
+        parent_id: newCatParentId || null,
+      })
+      .select('id, name, color, parent_id')
       .single()
     setSavingCat(false)
     if (error || !data) { alert('作成に失敗しました'); return }
@@ -120,6 +134,7 @@ function ArticlesContent() {
     setNewCatName('')
     setNewCatDesc('')
     setNewCatColor(PRESET_COLORS[0])
+    setNewCatParentId('')
   }
 
   const handleDeleteCategory = async (cat: Category) => {
@@ -139,17 +154,16 @@ function ArticlesContent() {
 
   const isAdmin = mySlackUserId === ADMIN_ID
 
-  // Build grouped sections
-  const sections = useMemo<Section[]>(() => {
+  // 親カテゴリー > 小カテゴリー > 記事 の階層構造を構築
+  const sections = useMemo<ParentSection[]>(() => {
     const q = query.trim().toLowerCase()
     const filtered = q
       ? articles.filter((a) => a.title.toLowerCase().includes(q) || a.author_name.toLowerCase().includes(q))
       : articles
 
-    // Group by category
+    // category_id → articles のマップ
     const catMap = new Map<string, Article[]>()
     const uncategorized: Article[] = []
-
     for (const a of filtered) {
       if (a.category_id) {
         const list = catMap.get(a.category_id) ?? []
@@ -160,20 +174,54 @@ function ArticlesContent() {
       }
     }
 
-    // Build sections from known categories (alphabetical order, already sorted from DB)
-    const result: Section[] = categories
-      .filter((c) => catMap.has(c.id))
-      .map((c) => ({ key: c.id, label: c.name, color: c.color, articles: catMap.get(c.id)! }))
-
-    // Uncategorized last
-    if (uncategorized.length > 0) {
-      result.push({ key: UNCATEGORIZED_KEY, label: '未分類', color: null, articles: uncategorized })
+    // カテゴリーを「親」(parent_id 無し) と「子」に分類
+    // parent_id が指す親が存在しない場合は親扱い
+    const catById = new Map(categories.map((c) => [c.id, c]))
+    const parents = categories.filter((c) => !c.parent_id || !catById.has(c.parent_id))
+    const childrenByParent = new Map<string, Category[]>()
+    for (const c of categories) {
+      if (c.parent_id && catById.has(c.parent_id)) {
+        const list = childrenByParent.get(c.parent_id) ?? []
+        list.push(c)
+        childrenByParent.set(c.parent_id, list)
+      }
     }
 
+    const result: ParentSection[] = []
+    for (const parent of parents) {
+      const directArticles = catMap.get(parent.id) ?? []
+      const children: ChildSection[] = (childrenByParent.get(parent.id) ?? [])
+        .map((c) => ({ category: c, articles: catMap.get(c.id) ?? [] }))
+        .filter((cs) => cs.articles.length > 0)
+      const totalCount =
+        directArticles.length + children.reduce((s, cs) => s + cs.articles.length, 0)
+      if (totalCount > 0) {
+        result.push({
+          key: parent.id,
+          label: parent.name,
+          color: parent.color,
+          directArticles,
+          children,
+          totalCount,
+        })
+      }
+    }
+
+    // 未分類は最後
+    if (uncategorized.length > 0) {
+      result.push({
+        key: UNCATEGORIZED_KEY,
+        label: '未分類',
+        color: null,
+        directArticles: uncategorized,
+        children: [],
+        totalCount: uncategorized.length,
+      })
+    }
     return result
   }, [articles, categories, query])
 
-  const totalCount = useMemo(() => sections.reduce((s, sec) => s + sec.articles.length, 0), [sections])
+  const totalCount = useMemo(() => sections.reduce((s, sec) => s + sec.totalCount, 0), [sections])
 
   return (
     <div className="min-h-screen bg-[#f4f6f9]">
@@ -249,22 +297,19 @@ function ArticlesContent() {
               const isUncategorized = section.key === UNCATEGORIZED_KEY
               return (
                 <div key={section.key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  {/* Section header */}
+                  {/* Parent header */}
                   <button
                     onClick={() => toggleCollapsed(section.key)}
                     className="w-full flex items-center gap-2.5 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-100"
                   >
                     {section.color ? (
-                      <span
-                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: section.color }}
-                      />
+                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
                     ) : (
                       <span className="w-2.5 h-2.5 rounded-full bg-gray-300 flex-shrink-0" />
                     )}
                     <span className="font-semibold text-gray-800 text-sm flex-1 text-left">
                       {section.label}
-                      <span className="ml-1.5 font-normal text-gray-400 text-xs">({section.articles.length})</span>
+                      <span className="ml-1.5 font-normal text-gray-400 text-xs">({section.totalCount})</span>
                     </span>
                     {isAdmin && !isUncategorized && (
                       <button
@@ -279,20 +324,72 @@ function ArticlesContent() {
                         <X size={10} />
                       </button>
                     )}
-                    <ChevronDown
-                      size={15}
-                      className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-                    />
+                    <ChevronDown size={15} className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
                   </button>
 
-                  {/* Articles */}
+                  {/* Body */}
                   {!isCollapsed && (
                     <div>
-                      {section.articles.map((article, i) => (
+                      {/* 子カテゴリーごとのブロック */}
+                      {section.children.map((cs) => {
+                        const childKey = `${section.key}:${cs.category.id}`
+                        const childCollapsed = collapsed.has(childKey)
+                        return (
+                          <div key={cs.category.id} className="border-t border-gray-100">
+                            <button
+                              onClick={() => toggleCollapsed(childKey)}
+                              className="w-full flex items-center gap-2 pl-6 pr-4 py-2.5 bg-white hover:bg-gray-50 transition-colors"
+                            >
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cs.category.color }} />
+                              <span className="font-medium text-gray-700 text-[13px] flex-1 text-left">
+                                {cs.category.name}
+                                <span className="ml-1.5 font-normal text-gray-400 text-xs">({cs.articles.length})</span>
+                              </span>
+                              {isAdmin && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cs.category) }}
+                                  className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 text-gray-400 transition-colors flex-shrink-0"
+                                  title="小カテゴリーを削除"
+                                >
+                                  <X size={10} />
+                                </button>
+                              )}
+                              <ChevronDown size={14} className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${childCollapsed ? '-rotate-90' : ''}`} />
+                            </button>
+                            {!childCollapsed && (
+                              <div className="bg-gray-50/50">
+                                {cs.articles.map((article, i) => (
+                                  <Link
+                                    key={article.id}
+                                    href={`/articles/${article.id}`}
+                                    className={`flex items-center gap-3 pl-9 pr-4 py-3 hover:bg-white transition-colors group ${i !== 0 ? 'border-t border-gray-100' : ''}`}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <h2 className="font-medium text-gray-900 text-sm truncate mb-0.5">{article.title}</h2>
+                                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                                        {article.author_avatar ? (
+                                          <Image src={article.author_avatar} alt={article.author_name} width={14} height={14} className="rounded-full flex-shrink-0" />
+                                        ) : (
+                                          <User size={11} className="flex-shrink-0" />
+                                        )}
+                                        <span className="truncate">{article.author_name}</span>
+                                      </div>
+                                    </div>
+                                    <span className="flex-shrink-0 text-xs text-gray-400">{format(new Date(article.created_at), 'M/d', { locale: ja })}</span>
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+
+                      {/* 親カテゴリー直下の記事 (小カテゴリーに属さない記事) */}
+                      {section.directArticles.map((article, i) => (
                         <Link
                           key={article.id}
                           href={`/articles/${article.id}`}
-                          className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors group ${i !== 0 ? 'border-t border-gray-50' : ''}`}
+                          className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors group ${(i !== 0 || section.children.length > 0) ? 'border-t border-gray-100' : ''}`}
                         >
                           <div className="flex-1 min-w-0">
                             <h2 className="font-medium text-gray-900 text-sm truncate mb-0.5">{article.title}</h2>
@@ -340,6 +437,21 @@ function ArticlesContent() {
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">親カテゴリー（任意）</label>
+                <select
+                  value={newCatParentId}
+                  onChange={(e) => setNewCatParentId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] bg-white"
+                >
+                  <option value="">なし（大カテゴリーとして作成）</option>
+                  {categories.filter((c) => !c.parent_id).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">親を指定すると小カテゴリーとして作成されます</p>
               </div>
 
               <div>

@@ -82,46 +82,62 @@ export default function DashboardPage() {
     const load = async () => {
       setLoading(true)
 
-      // Fetch channels for name lookup
-      const { data: channels } = await supabase
-        .from('channels')
-        .select('id, name')
-        .eq('is_hidden', false)
+      // First batch: all independent queries in parallel
+      const [channelsRes, memberCountRes, eventsRes, catsRes, artCountRes, vimeoResult] = await Promise.all([
+        supabase.from('channels').select('id, name').eq('is_hidden', false),
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase
+          .from('events')
+          .select('id, title, deadline, confirmed_date, created_at')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase.from('article_categories').select('id, name, color').order('name'),
+        supabase.from('articles').select('category_id').eq('published', true),
+        fetch('/api/vimeo/videos?project_id=25313251&recursive=1').then((r) => r.json()).catch(() => null),
+      ])
+
       const cmap: Record<string, string> = {}
-      for (const c of channels ?? []) cmap[c.id] = c.name
+      for (const c of channelsRes.data ?? []) cmap[c.id] = c.name
       setChannelMap(cmap)
 
-      // Fetch latest 3 messages across all visible channels
-      const channelIds = Object.keys(cmap)
-      if (channelIds.length > 0) {
-        const { data: msgs } = await supabase
-          .from('messages')
-          .select('*')
-          .in('channel_id', channelIds)
-          .order('created_at', { ascending: false })
-          .limit(3)
-        setRecentMessages(msgs ?? [])
+      setMemberCount(memberCountRes.count ?? null)
+
+      const countMap: Record<string, number> = {}
+      for (const a of artCountRes.data ?? []) {
+        if (a.category_id) countMap[a.category_id] = (countMap[a.category_id] ?? 0) + 1
+      }
+      const cats = (catsRes.data ?? []) as { id: string; name: string; color: string }[]
+      setArticleCategories(cats.map((c) => ({ ...c, count: countMap[c.id] ?? 0 })))
+
+      if (vimeoResult && Array.isArray(vimeoResult.data)) {
+        setRecentVideos((vimeoResult.data as VimeoVideo[]).slice(0, 3))
       }
 
-      // Fetch member count
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-      setMemberCount(count ?? null)
+      // Second batch: queries that depend on first-batch results, also in parallel
+      const channelIds = Object.keys(cmap)
+      const eventsData = eventsRes.data ?? []
+      const eventIds = eventsData.map((e) => e.id)
 
-      // Fetch recent events with date/response counts
-      const { data: eventsData } = await supabase
-        .from('events')
-        .select('id, title, deadline, confirmed_date, created_at')
-        .order('created_at', { ascending: false })
-        .limit(10)
+      const [msgsRes, datesRes, responsesRes] = await Promise.all([
+        channelIds.length > 0
+          ? supabase
+              .from('messages')
+              .select('*')
+              .in('channel_id', channelIds)
+              .order('created_at', { ascending: false })
+              .limit(3)
+          : Promise.resolve({ data: [] as Message[] }),
+        eventIds.length > 0
+          ? supabase.from('event_dates').select('event_id, id, date').in('event_id', eventIds).order('date')
+          : Promise.resolve({ data: [] as { event_id: string; id: string; date: string }[] }),
+        eventIds.length > 0
+          ? supabase.from('event_responses').select('event_id, responder_name').in('event_id', eventIds)
+          : Promise.resolve({ data: [] as { event_id: string; responder_name: string }[] }),
+      ])
 
-      if (eventsData && eventsData.length > 0) {
-        const eventIds = eventsData.map((e) => e.id)
-        const [datesRes, responsesRes] = await Promise.all([
-          supabase.from('event_dates').select('event_id, id, date').in('event_id', eventIds).order('date'),
-          supabase.from('event_responses').select('event_id, responder_name').in('event_id', eventIds),
-        ])
+      setRecentMessages((msgsRes.data ?? []) as Message[])
+
+      if (eventsData.length > 0) {
         const datesByEvent: Record<string, { id: string; date: string }[]> = {}
         for (const d of datesRes.data ?? []) {
           if (!datesByEvent[d.event_id]) datesByEvent[d.event_id] = []
@@ -138,28 +154,6 @@ export default function DashboardPage() {
           date_count: datesByEvent[e.id]?.length ?? 0,
           response_count: responderSets[e.id]?.size ?? 0,
         })))
-      }
-
-      // Fetch article categories with counts
-      const [catsRes, artCountRes] = await Promise.all([
-        supabase.from('article_categories').select('id, name, color').order('name'),
-        supabase.from('articles').select('category_id').eq('published', true),
-      ])
-      const countMap: Record<string, number> = {}
-      for (const a of artCountRes.data ?? []) {
-        if (a.category_id) countMap[a.category_id] = (countMap[a.category_id] ?? 0) + 1
-      }
-      const cats = (catsRes.data ?? []) as { id: string; name: string; color: string }[]
-      setArticleCategories(cats.map((c) => ({ ...c, count: countMap[c.id] ?? 0 })))
-
-      // Fetch recent videos
-      try {
-        const res = await fetch('/api/vimeo/videos?project_id=25313251')
-        const json = await res.json()
-        const videos: VimeoVideo[] = json.data ?? []
-        setRecentVideos(videos.slice(0, 3))
-      } catch {
-        // ignore
       }
 
       setLoading(false)

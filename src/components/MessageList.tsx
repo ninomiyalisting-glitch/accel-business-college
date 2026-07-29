@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { format, isToday, isYesterday, isSameDay } from 'date-fns'
 import { ja } from 'date-fns/locale'
-import { MessageSquare, Smile, Pencil, Trash2 } from 'lucide-react'
+import { Smile, Pencil, X } from 'lucide-react'
 import { Message, ReactionsMap, CustomEmojis, SlackFile } from '@/types'
 import { SLACK_USER_NAMES } from '@/lib/slackUserNames'
 import MemberPopup, { MemberInfo } from './MemberPopup'
@@ -179,7 +179,7 @@ function renderReaction(reaction: string, customEmojis?: CustomEmojis): React.Re
   const char = SLACK_EMOJI[base] ?? SLACK_EMOJI[reaction]
   if (char) return char
   const url = customEmojis?.[base] ?? customEmojis?.[reaction]
-  if (url) return <img src={url} alt={reaction} title={reaction} className="inline-block w-4 h-4 object-contain align-middle" />
+  if (url) return <img src={url} alt={reaction} title={reaction} loading="lazy" decoding="async" width={16} height={16} className="inline-block w-4 h-4 object-contain align-middle" />
   return `:${reaction}:`
 }
 
@@ -237,7 +237,7 @@ function renderContent(content: string, customEmojis?: CustomEmojis): React.Reac
       if (url) {
         return (
           // eslint-disable-next-line @next/next/no-img-element
-          <img key={i} src={url} alt={name} title={name} className="inline-block w-5 h-5 object-contain align-middle mx-0.5" />
+          <img key={i} src={url} alt={name} title={name} loading="lazy" decoding="async" width={20} height={20} className="inline-block w-5 h-5 object-contain align-middle mx-0.5" />
         )
       }
       return <span key={i} className="text-gray-500 text-sm">{`:${name}:`}</span>
@@ -290,25 +290,64 @@ function FileAttachments({ files }: { files: SlackFile[] }) {
   )
 }
 
-// Emoji picker popup
+// Emoji picker popup (fixed positioning anchored to a button — overflow:hidden の親に影響されない)
 function EmojiPicker({
+  anchor,
   onSelect,
   onClose,
   customEmojis,
 }: {
+  anchor: HTMLElement
   onSelect: (reaction: string) => void
   onClose: () => void
   customEmojis?: CustomEmojis
 }) {
   const customList = Object.entries(customEmojis ?? {}).slice(0, 40)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const PICKER_W = 240   // w-60 = 15rem = 240px
+  const PICKER_H = 280   // 概算: quick row + custom grid
+  const MARGIN = 8
+
+  useEffect(() => {
+    const update = () => {
+      const r = anchor.getBoundingClientRect()
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      // 縦: トリガーの上に出す。はみ出すなら下に。
+      let top = r.top - PICKER_H - MARGIN
+      if (top < MARGIN) top = r.bottom + MARGIN
+      if (top + PICKER_H + MARGIN > vh) top = Math.max(MARGIN, vh - PICKER_H - MARGIN)
+      // 横: トリガーの左に揃え、右にはみ出すなら左へ寄せる
+      let left = r.left
+      if (left + PICKER_W + MARGIN > vw) left = vw - PICKER_W - MARGIN
+      if (left < MARGIN) left = MARGIN
+      setPos({ top, left })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
+  }, [anchor])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  if (!pos) return null
 
   return (
     <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-20" onClick={onClose} />
-      {/* Picker */}
+      {/* Backdrop: 全画面・クリックで閉じる */}
+      <div className="fixed inset-0 z-[60]" onClick={onClose} />
+      {/* Picker: fixed配置 */}
       <div
-        className="absolute bottom-full right-0 z-30 bg-white rounded-xl shadow-xl border border-gray-200 p-2 mb-1 w-60"
+        className="fixed z-[70] bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-60"
+        style={{ top: pos.top, left: pos.left }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Quick-pick row */}
@@ -338,7 +377,7 @@ function EmojiPicker({
                   title={name}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt={name} className="w-6 h-6 object-contain" />
+                  <img src={url} alt={name} loading="lazy" decoding="async" width={24} height={24} className="w-6 h-6 object-contain" />
                 </button>
               ))}
             </div>
@@ -351,13 +390,16 @@ function EmojiPicker({
 
 type AvatarMap = Record<string, string>
 type UserInfoMap = Record<string, MemberInfo>
+type UserBySlackId = Record<string, { displayName: string; avatarUrl: string | null }>
 
 interface Props {
   messages: Message[]
   currentUserName: string
+  currentSlackUserId?: string | null
   channelName?: string
   avatarMap?: AvatarMap
   userInfoMap?: UserInfoMap
+  userBySlackId?: UserBySlackId
   hasMore?: boolean
   onLoadMore?: () => void
   reactionsMap?: ReactionsMap
@@ -365,6 +407,194 @@ interface Props {
   onAddReaction?: (msg: Message, reaction: string) => void
   onEditMessage?: (msgId: string, newContent: string) => void
   onDeleteMessage?: (msgId: string) => void
+  onReplyMessage?: (msg: Message) => void
+  replyingToId?: string | null
+}
+
+function formatUserList(users: string[]): string {
+  if (users.length === 0) return ''
+  if (users.length <= 3) return users.join('・')
+  return `${users.slice(0, 3).join('・')} 他${users.length - 3}名`
+}
+
+function ReactionUsersModal({
+  reaction,
+  users,
+  avatarMap,
+  customEmojis,
+  currentUserName,
+  myReacted,
+  onToggle,
+  onClose,
+}: {
+  reaction: string
+  users: string[]
+  avatarMap?: Record<string, string>
+  customEmojis?: CustomEmojis
+  currentUserName: string
+  myReacted: boolean
+  onToggle: () => void
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-sm w-full max-h-[80vh] flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl leading-none flex-shrink-0">{renderReaction(reaction, customEmojis)}</span>
+            <h3 className="font-bold text-gray-900 truncate">にリアクションしたメンバー</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+            title="閉じる"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-3 py-2">
+          {users.length === 0 ? (
+            <p className="text-center text-sm text-gray-500 py-8">まだリアクションがありません</p>
+          ) : (
+            <ul className="divide-y divide-gray-50">
+              {users.map((u) => {
+                const av = avatarMap?.[u]
+                const isMe = u === currentUserName
+                return (
+                  <li key={u} className="flex items-center gap-3 px-2 py-2">
+                    {av ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={av} alt={u} className="w-9 h-9 rounded-lg object-cover" />
+                    ) : (
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm ${getAvatarColor(u)}`}>
+                        {u.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span className="flex-1 text-sm font-medium text-gray-800 truncate">{u}</span>
+                    {isMe && (
+                      <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full">あなた</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+
+        {currentUserName && (
+          <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
+            <button
+              onClick={() => { onToggle(); onClose() }}
+              className={`w-full py-2 rounded-lg font-medium text-sm transition-colors ${
+                myReacted
+                  ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
+                  : 'bg-purple-700 text-white hover:bg-purple-800'
+              }`}
+            >
+              {myReacted ? 'リアクションを取り消す' : 'リアクションする'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ReactionChip({
+  reaction,
+  count,
+  users,
+  myReacted,
+  onToggle,
+  customEmojis,
+  avatarMap,
+  currentUserName,
+}: {
+  reaction: string
+  count: number
+  users: string[]
+  myReacted: boolean
+  onToggle: () => void
+  customEmojis?: CustomEmojis
+  avatarMap?: Record<string, string>
+  currentUserName: string
+}) {
+  const [showTip, setShowTip] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const clearTimers = () => {
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null }
+    if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null }
+  }
+
+  useEffect(() => () => clearTimers(), [])
+
+  const handleTouchStart = () => {
+    clearTimers()
+    pressTimerRef.current = setTimeout(() => {
+      setShowTip(true)
+      hideTimerRef.current = setTimeout(() => setShowTip(false), 2500)
+    }, 400)
+  }
+
+  const handleTouchEnd = () => {
+    if (pressTimerRef.current) { clearTimeout(pressTimerRef.current); pressTimerRef.current = null }
+  }
+
+  return (
+    <>
+      <div className="relative inline-flex">
+        <button
+          onClick={() => { setShowTip(false); setShowModal(true) }}
+          onMouseEnter={() => setShowTip(true)}
+          onMouseLeave={() => setShowTip(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onTouchMove={handleTouchEnd}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm transition-colors ${
+            myReacted
+              ? 'bg-purple-100 border border-purple-300 hover:bg-purple-200'
+              : 'bg-gray-100 hover:bg-gray-200 border border-transparent'
+          }`}
+          title={`${reaction} のリアクション詳細を表示`}
+        >
+          <span className="leading-none">{renderReaction(reaction, customEmojis)}</span>
+          <span className="text-xs text-gray-600 font-medium">{count}</span>
+        </button>
+        {showTip && users.length > 0 && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-30 pointer-events-none">
+            <div className="font-medium">{formatUserList(users)}</div>
+            <div className="text-gray-300 text-[10px] mt-0.5">タップで全員を表示</div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
+          </div>
+        )}
+      </div>
+      {showModal && (
+        <ReactionUsersModal
+          reaction={reaction}
+          users={users}
+          avatarMap={avatarMap}
+          customEmojis={customEmojis}
+          currentUserName={currentUserName}
+          myReacted={myReacted}
+          onToggle={onToggle}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </>
+  )
 }
 
 function getAvatarColor(name: string): string {
@@ -397,6 +627,13 @@ function sameTimestamp(a: string, b: string): boolean {
   return Math.abs(new Date(a).getTime() - new Date(b).getTime()) < 1000
 }
 
+// reactionsMap キー正規化: PostgreSQL TIMESTAMPTZ の書式ゆれを epoch ms 文字列で統一
+function tsKey(ts: string | null | undefined): string {
+  if (!ts) return ''
+  const t = new Date(ts).getTime()
+  return Number.isFinite(t) ? String(t) : ts
+}
+
 function MessageBubble({
   msg,
   isContinuation,
@@ -411,8 +648,12 @@ function MessageBubble({
   onReact,
   onEditMessage,
   onDeleteMessage,
+  onReply,
   onMemberClick,
   isReply = false,
+  isReplying = false,
+  currentSlackUserId,
+  userBySlackId,
 }: {
   msg: Message
   isContinuation: boolean
@@ -427,8 +668,12 @@ function MessageBubble({
   onReact?: (reaction: string) => void
   onEditMessage?: (msgId: string, newContent: string) => void
   onDeleteMessage?: (msgId: string) => void
+  onReply?: () => void
   onMemberClick?: (member: MemberInfo) => void
   isReply?: boolean
+  isReplying?: boolean
+  currentSlackUserId?: string | null
+  userBySlackId?: UserBySlackId
 }) {
   const [expanded, setExpanded] = useState(false)
   const [avatarError, setAvatarError] = useState(false)
@@ -436,8 +681,41 @@ function MessageBubble({
   const [isEditing, setIsEditing] = useState(false)
   const [editContent, setEditContent] = useState(msg.content)
   const [saving, setSaving] = useState(false)
+  const reactBtnRef = useRef<HTMLButtonElement>(null)
   const replyCount = threadReplies?.length ?? 0
-  const avatarUrl = msg.avatar_url || avatarMap?.[msg.user_name]
+
+  // 表示名・アバターを解決:
+  // 1. msg.slack_user_id があれば users テーブル(slack_user_id 索引)を優先
+  // 2. それで取れなければ msg.user_name / avatar_url / avatarMap[user_name] にフォールバック
+  // → 新規メンバーで user_name が "U02XXX" のような ID 羅列でも、users テーブルに
+  //   slack_user_id 行があれば正しい表示名・アバターが出る
+  const userFromId = msg.slack_user_id ? userBySlackId?.[msg.slack_user_id] : undefined
+  const displayName = userFromId?.displayName || msg.user_name
+  const avatarUrl =
+    userFromId?.avatarUrl ||
+    msg.avatar_url ||
+    avatarMap?.[displayName] ||
+    avatarMap?.[msg.user_name]
+
+  // 削除権限: slack_user_id 一致 OR user_name 一致 OR 管理者
+  const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
+  const sameSlackId = !!(currentSlackUserId && msg.slack_user_id && currentSlackUserId === msg.slack_user_id)
+  const sameUserName = !!currentUserName && msg.user_name === currentUserName
+  const isAdmin = !!currentSlackUserId && currentSlackUserId === ADMIN_SLACK_USER_ID
+  const canDelete = sameSlackId || sameUserName || isAdmin
+
+  // デバッグ: 削除権限判定の根拠を確認
+  console.log('[MessageBubble] canDelete check', {
+    msgId: msg.id,
+    msgUserName: msg.user_name,
+    msgSlackUserId: msg.slack_user_id ?? null,
+    currentUserName,
+    currentSlackUserId: currentSlackUserId ?? null,
+    sameSlackId,
+    sameUserName,
+    isAdmin,
+    canDelete,
+  })
 
   const handleSaveEdit = async () => {
     const trimmed = editContent.trim()
@@ -454,6 +732,7 @@ function MessageBubble({
           messageCreatedAt: msg.created_at,
           content: trimmed,
           userName: currentUserName,
+          slackUserId: currentSlackUserId ?? null,
         }),
       })
       onEditMessage?.(msg.id, trimmed)
@@ -476,6 +755,7 @@ function MessageBubble({
           channelName,
           messageCreatedAt: msg.created_at,
           userName: currentUserName,
+          slackUserId: currentSlackUserId ?? null,
         }),
       })
       onDeleteMessage?.(msg.id)
@@ -484,232 +764,226 @@ function MessageBubble({
     }
   }
 
+  const memberInfo: MemberInfo = {
+    displayName,
+    avatarUrl: avatarUrl ?? null,
+    slackUserId: msg.slack_user_id ?? userInfoMap?.[displayName]?.slackUserId ?? userInfoMap?.[msg.user_name]?.slackUserId ?? null,
+  }
+
   return (
-    <div className={`flex gap-3 px-6 py-1 hover:bg-gray-50 group ${isContinuation ? 'mt-0' : 'mt-3'} ${isReply ? 'pl-14 pr-6' : ''} relative`}>
-      {/* アバター */}
-      <div className="flex-shrink-0 w-9">
-        {!isContinuation ? (
+    <div className={`w-full px-2 md:px-3 py-2 ${isContinuation ? 'mt-0' : 'mt-2'} ${isReplying ? 'bg-purple-50/60' : 'hover:bg-gray-50'} ${isReply ? 'pl-3 md:pl-4' : ''} relative`}>
+      {/* Row 1: アバター・名前・時刻 */}
+      {!isContinuation && (
+        <div className="flex items-center gap-2 mb-1">
           <button
-            onClick={() => onMemberClick?.({
-              displayName: msg.user_name,
-              avatarUrl: avatarUrl ?? null,
-              slackUserId: userInfoMap?.[msg.user_name]?.slackUserId ?? null,
-            })}
-            className="block w-9 h-9 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#2563eb]/40 transition-all"
-            title={msg.user_name}
+            onClick={() => onMemberClick?.(memberInfo)}
+            className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#2563eb]/40 transition-all"
+            title={displayName}
           >
             {avatarUrl && !avatarError ? (
               <Image
                 src={avatarUrl}
-                alt={msg.user_name}
-                width={36}
-                height={36}
+                alt={displayName}
+                width={32}
+                height={32}
                 className="w-full h-full object-cover"
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm ${getAvatarColor(msg.user_name)}`}>
-                {msg.user_name.charAt(0).toUpperCase()}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-sm ${getAvatarColor(displayName)}`}>
+                {displayName.charAt(0).toUpperCase()}
               </div>
             )}
           </button>
-        ) : (
-          <div className="w-9 h-5 flex items-center justify-center">
-            <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-              {formatTime(msg.created_at)}
-            </span>
-          </div>
-        )}
-      </div>
+          <button
+            onClick={() => onMemberClick?.(memberInfo)}
+            className={`text-sm font-bold hover:underline focus:outline-none ${isOwn ? 'text-purple-700' : 'text-gray-900'}`}
+          >
+            {displayName}
+          </button>
+          <span className="text-xs text-gray-400">{formatTime(msg.created_at)}</span>
+        </div>
+      )}
+      {isContinuation && (
+        <div className="text-[10px] text-gray-400 mb-1">{formatTime(msg.created_at)}</div>
+      )}
 
-      {/* メッセージ内容 */}
-      <div className="flex-1 min-w-0">
-        {!isContinuation && (
-          <div className="flex items-baseline gap-2 mb-0.5">
+      {/* Row 2: メッセージ本文 (全幅・左余白なし) */}
+      {isEditing ? (
+        <div>
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false) }}
+            rows={Math.max(2, editContent.split('\n').length)}
+            className="w-full text-[15px] text-gray-800 border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+            autoFocus
+          />
+          <div className="flex gap-2 mt-1.5 text-sm">
             <button
-              onClick={() => onMemberClick?.({
-                displayName: msg.user_name,
-                avatarUrl: avatarUrl ?? null,
-                slackUserId: userInfoMap?.[msg.user_name]?.slackUserId ?? null,
-              })}
-              className={`text-sm font-bold hover:underline focus:outline-none ${isOwn ? 'text-purple-700' : 'text-gray-900'}`}
+              onClick={handleSaveEdit}
+              disabled={saving || !editContent.trim()}
+              className="px-3 py-1 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors disabled:opacity-50"
             >
-              {msg.user_name}
+              {saving ? '保存中...' : '保存'}
             </button>
-            <span className="text-xs text-gray-400">{formatTime(msg.created_at)}</span>
-          </div>
-        )}
-        {isEditing ? (
-          <div className="mt-1">
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false) }}
-              rows={Math.max(2, editContent.split('\n').length)}
-              className="w-full text-[15px] text-gray-800 border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
-              autoFocus
-            />
-            <div className="flex gap-2 mt-1.5 text-sm">
-              <button
-                onClick={handleSaveEdit}
-                disabled={saving || !editContent.trim()}
-                className="px-3 py-1 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors disabled:opacity-50"
-              >
-                {saving ? '保存中...' : '保存'}
-              </button>
-              <button
-                onClick={() => { setIsEditing(false); setEditContent(msg.content) }}
-                className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            {msg.content && (
-              <p className="text-[15px] text-gray-800 leading-relaxed break-words whitespace-pre-wrap">
-                {renderContent(msg.content, customEmojis)}
-              </p>
-            )}
-            {msg.files_json && msg.files_json.length > 0 && (
-              <FileAttachments files={msg.files_json} />
-            )}
-          </>
-        )}
-
-        {/* リアクション一覧 */}
-        {reactions && reactions.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {reactions.map(({ reaction, count, users }) => {
-              const myReacted = users.includes(currentUserName)
-              return (
-                <button
-                  key={reaction}
-                  onClick={() => onReact?.(reaction)}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm transition-colors ${
-                    myReacted
-                      ? 'bg-purple-100 border border-purple-300 hover:bg-purple-200'
-                      : 'bg-gray-100 hover:bg-gray-200 border border-transparent'
-                  }`}
-                  title={`${reaction}${myReacted ? ' (取り消す)' : ''}`}
-                >
-                  <span className="leading-none">{renderReaction(reaction, customEmojis)}</span>
-                  <span className="text-xs text-gray-600 font-medium">{count}</span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {/* スレッド返信ボタン */}
-        {!isReply && replyCount > 0 && (
-          <div className="mt-2">
             <button
-              onClick={() => setExpanded((v) => !v)}
-              className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+              onClick={() => { setIsEditing(false); setEditContent(msg.content) }}
+              className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
             >
-              <MessageSquare size={14} />
-              {replyCount}件の返信
-              <span className="text-xs text-gray-400">{expanded ? '▲ 閉じる' : '▼ 開く'}</span>
+              キャンセル
             </button>
-
-            {expanded && (
-              <div className="mt-2 border-l-2 border-gray-200 pl-3 space-y-1">
-                {threadReplies!.map((reply, idx) => {
-                  const prevReply = threadReplies![idx - 1]
-                  const isContReply =
-                    prevReply &&
-                    prevReply.user_name === reply.user_name &&
-                    new Date(reply.created_at).getTime() - new Date(prevReply.created_at).getTime() < 5 * 60 * 1000
-                  return (
-                    <MessageBubble
-                      key={reply.id}
-                      msg={reply}
-                      isContinuation={isContReply}
-                      isOwn={reply.user_name === currentUserName}
-                      reactions={[]}
-                      avatarMap={avatarMap}
-                      userInfoMap={userInfoMap}
-                      customEmojis={customEmojis}
-                      currentUserName={currentUserName}
-                      onMemberClick={onMemberClick}
-                      isReply
-                    />
-                  )
-                })}
-              </div>
-            )}
           </div>
-        )}
-      </div>
-
-      {/* アクションボタンエリア */}
-      {!isReply && !isEditing && (
-        <div className="flex-shrink-0 self-start mt-0.5 flex items-center gap-0.5">
-          {/* 編集・削除（自分のメッセージのみ） */}
-          {isOwn && (
-            <>
-              {/* Desktop: hover only */}
-              <button
-                onClick={() => { setIsEditing(true); setEditContent(msg.content) }}
-                className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600"
-                title="編集"
-              >
-                <Pencil size={14} />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500"
-                title="削除"
-              >
-                <Trash2 size={14} />
-              </button>
-              {/* Mobile: always visible */}
-              <button
-                onClick={() => { setIsEditing(true); setEditContent(msg.content) }}
-                className="flex md:hidden p-1.5 rounded-lg text-gray-300 active:bg-gray-200"
-                title="編集"
-              >
-                <Pencil size={12} />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex md:hidden p-1.5 rounded-lg text-gray-300 active:bg-red-100"
-                title="削除"
-              >
-                <Trash2 size={12} />
-              </button>
-            </>
+        </div>
+      ) : (
+        <div className="w-full">
+          {msg.content && (
+            <p className="text-[15px] text-gray-800 leading-relaxed break-words whitespace-pre-wrap">
+              {renderContent(msg.content, customEmojis)}
+            </p>
           )}
+          {msg.files_json && msg.files_json.length > 0 && (
+            <FileAttachments files={msg.files_json} />
+          )}
+        </div>
+      )}
 
-          {/* リアクションボタン */}
+      {/* Row 3: リアクション一覧 */}
+      {reactions && reactions.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {reactions.map(({ reaction, count, users }) => (
+            <ReactionChip
+              key={reaction}
+              reaction={reaction}
+              count={count}
+              users={users}
+              myReacted={users.includes(currentUserName)}
+              onToggle={() => onReact?.(reaction)}
+              customEmojis={customEmojis}
+              avatarMap={avatarMap}
+              currentUserName={currentUserName}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Row 4: アクションボタン (常時表示・PC/スマホ共通) */}
+      {!isEditing && (
+        <div className="flex flex-wrap items-center gap-1.5 mt-2">
           {onReact && (
-            <div className="relative">
-              {/* Desktop: hover only */}
+            <>
               <button
+                ref={reactBtnRef}
                 onClick={(e) => { e.stopPropagation(); setShowPicker((v) => !v) }}
-                className="hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-gray-200 text-gray-400 hover:text-gray-600"
-                title="リアクションを追加"
-              >
-                <Smile size={16} />
-              </button>
-              {/* Mobile: always visible */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowPicker((v) => !v) }}
-                className="flex md:hidden p-1.5 rounded-lg text-gray-300 active:bg-gray-200"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
                 title="リアクションを追加"
               >
                 <Smile size={14} />
+                <span>リアクション</span>
               </button>
-
-              {showPicker && (
+              {showPicker && reactBtnRef.current && (
                 <EmojiPicker
+                  anchor={reactBtnRef.current}
                   onSelect={(reaction) => onReact(reaction)}
                   onClose={() => setShowPicker(false)}
                   customEmojis={customEmojis}
                 />
               )}
+            </>
+          )}
+          {!isReply && onReply && (
+            <button
+              onClick={onReply}
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
+              title="スレッドで返信"
+            >
+              <span aria-hidden>💬</span>
+              <span>返信</span>
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => { setIsEditing(true); setEditContent(msg.content) }}
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors"
+              title="編集"
+            >
+              <Pencil size={12} />
+              <span>編集</span>
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg text-xs font-medium transition-colors"
+              title="削除"
+            >
+              <span aria-hidden>🗑️</span>
+              <span>削除</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* スレッド返信表示 (Slack風) */}
+      {!isReply && replyCount > 0 && (
+        <div className="mt-2">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-transparent hover:border-gray-200 hover:bg-white transition-colors group/thread"
+          >
+            <div className="flex -space-x-1.5">
+              {Array.from(new Set(threadReplies!.map((r) => r.user_name))).slice(0, 3).map((name) => {
+                const av = avatarMap?.[name]
+                return av ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={name}
+                    src={av}
+                    alt={name}
+                    className="w-5 h-5 rounded-md border border-white object-cover"
+                  />
+                ) : (
+                  <div key={name} className={`w-5 h-5 rounded-md border border-white flex items-center justify-center text-[10px] text-white font-bold ${getAvatarColor(name)}`}>
+                    {name.charAt(0).toUpperCase()}
+                  </div>
+                )
+              })}
+            </div>
+            <span className="text-xs font-bold text-blue-600 group-hover/thread:underline">
+              {replyCount}件の返信
+            </span>
+            <span className="text-[11px] text-gray-500">
+              最終返信 {formatTime(threadReplies![threadReplies!.length - 1].created_at)}
+            </span>
+            <span className="text-[11px] text-gray-400">{expanded ? '閉じる ▲' : 'スレッドを開く ▼'}</span>
+          </button>
+
+          {expanded && (
+            <div className="mt-2 ml-1 border-l-2 border-purple-200 bg-gray-50/60 rounded-r-lg py-2">
+              {threadReplies!.map((reply, idx) => {
+                const prevReply = threadReplies![idx - 1]
+                const isContReply =
+                  prevReply &&
+                  prevReply.user_name === reply.user_name &&
+                  new Date(reply.created_at).getTime() - new Date(prevReply.created_at).getTime() < 5 * 60 * 1000
+                return (
+                  <MessageBubble
+                    key={reply.id}
+                    msg={reply}
+                    isContinuation={isContReply}
+                    isOwn={reply.user_name === currentUserName}
+                    reactions={[]}
+                    avatarMap={avatarMap}
+                    userInfoMap={userInfoMap}
+                    userBySlackId={userBySlackId}
+                    customEmojis={customEmojis}
+                    currentUserName={currentUserName}
+                    currentSlackUserId={currentSlackUserId}
+                    onMemberClick={onMemberClick}
+                    isReply
+                  />
+                )
+              })}
             </div>
           )}
         </div>
@@ -718,7 +992,11 @@ function MessageBubble({
   )
 }
 
-export default function MessageList({ messages, currentUserName, channelName, avatarMap, userInfoMap, hasMore, onLoadMore, reactionsMap, customEmojis, onAddReaction, onEditMessage, onDeleteMessage }: Props) {
+export default function MessageList({ messages, currentUserName, currentSlackUserId, channelName, avatarMap, userInfoMap, userBySlackId, hasMore, onLoadMore, reactionsMap, customEmojis, onAddReaction, onEditMessage, onDeleteMessage, onReplyMessage, replyingToId }: Props) {
+  // デバッグ: 現在ログイン中のユーザー識別子を1度だけ出力
+  useEffect(() => {
+    console.log('[MessageList] current user:', { currentUserName, currentSlackUserId: currentSlackUserId ?? null })
+  }, [currentUserName, currentSlackUserId])
   const bottomRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const prevLengthRef = useRef(0)
@@ -858,7 +1136,7 @@ export default function MessageList({ messages, currentUserName, channelName, av
           {groupedMessages.map((group, groupIdx) => (
             <div key={groupIdx}>
               {/* 日付セパレーター */}
-              <div className="flex items-center gap-3 px-6 my-4">
+              <div className="flex items-center gap-3 px-2 md:px-6 my-4">
                 <div className="flex-1 h-px bg-gray-200" />
                 <span className="text-xs font-medium text-gray-500 px-2 py-0.5 bg-white border border-gray-200 rounded-full whitespace-nowrap">
                   {formatDateSeparator(group.date)}
@@ -876,7 +1154,7 @@ export default function MessageList({ messages, currentUserName, channelName, av
 
                 const msgTimeMs = new Date(msg.created_at).getTime()
                 const threadReplies = threadMap.get(msgTimeMs)
-                const reactions = reactionsMap?.[msg.created_at]
+                const reactions = reactionsMap?.[tsKey(msg.created_at)]
 
                 return (
                   <MessageBubble
@@ -888,13 +1166,17 @@ export default function MessageList({ messages, currentUserName, channelName, av
                     threadReplies={threadReplies}
                     avatarMap={avatarMap}
                     userInfoMap={userInfoMap}
+                    userBySlackId={userBySlackId}
                     customEmojis={customEmojis}
                     currentUserName={currentUserName}
+                    currentSlackUserId={currentSlackUserId}
                     channelName={channelName}
                     onReact={onAddReaction ? (reaction) => onAddReaction(msg, reaction) : undefined}
                     onEditMessage={onEditMessage}
                     onDeleteMessage={onDeleteMessage}
+                    onReply={onReplyMessage ? () => onReplyMessage(msg) : undefined}
                     onMemberClick={handleMemberClick}
+                    isReplying={replyingToId === msg.id}
                   />
                 )
               })}

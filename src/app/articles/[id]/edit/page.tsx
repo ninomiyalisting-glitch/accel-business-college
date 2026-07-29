@@ -15,6 +15,7 @@ interface Category {
   id: string
   name: string
   color: string
+  parent_id: string | null
 }
 
 export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,8 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   const [categories, setCategories] = useState<Category[]>([])
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [categoryId, setCategoryId] = useState('')
+  const [parentCategoryId, setParentCategoryId] = useState('')
+  const [subCategoryId, setSubCategoryId] = useState('')
   const [coverImageUrl, setCoverImageUrl] = useState('')
   const [published, setPublished] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -32,11 +34,13 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   const [authorized, setAuthorized] = useState(false)
   const [mySlackUserId, setMySlackUserId] = useState<string | null>(null)
 
-  // inline new category
+  // inline new category (大カテゴリー追加用)
   const [showNewCat, setShowNewCat] = useState(false)
   const [newCatName, setNewCatName] = useState('')
   const [creatingCat, setCreatingCat] = useState(false)
   const newCatInputRef = useRef<HTMLInputElement>(null)
+
+  const categoryId = subCategoryId || parentCategoryId
 
   useEffect(() => {
     try {
@@ -46,7 +50,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   }, [])
 
   useEffect(() => {
-    supabase.from('article_categories').select('id, name, color').order('name').then(({ data }) => {
+    supabase.from('article_categories').select('id, name, color, parent_id').order('name').then(({ data }) => {
       setCategories((data ?? []) as Category[])
     })
   }, [])
@@ -55,8 +59,10 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     if (showNewCat) newCatInputRef.current?.focus()
   }, [showNewCat])
 
+  // 既存記事のロード (categories が揃ってから parent/sub に分解できる)
   useEffect(() => {
-    if (!mySlackUserId) return
+    if (!mySlackUserId || categories.length === 0) return
+    if (!loadingArticle) return  // 二重実行防止
     supabase
       .from('articles')
       .select('title, content, category_id, cover_image_url, published, author_slack_user_id')
@@ -71,20 +77,35 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         }
         setTitle(data.title)
         setContent(data.content)
-        setCategoryId(data.category_id ?? '')
+        // 既存 category_id を parent/sub に分解
+        if (data.category_id) {
+          const cat = categories.find((c) => c.id === data.category_id)
+          if (cat?.parent_id) {
+            setParentCategoryId(cat.parent_id)
+            setSubCategoryId(cat.id)
+          } else {
+            setParentCategoryId(data.category_id)
+            setSubCategoryId('')
+          }
+        }
         setCoverImageUrl(data.cover_image_url ?? '')
         setPublished(data.published)
         setAuthorized(true)
         setLoadingArticle(false)
       })
-  }, [id, mySlackUserId, router])
+  }, [id, mySlackUserId, categories, loadingArticle, router])
 
-  const handleSelectChange = (val: string) => {
+  const parentCategories = categories.filter((c) => !c.parent_id)
+  const subCategories = categories.filter((c) => c.parent_id === parentCategoryId)
+
+  const handleParentChange = (val: string) => {
     if (val === NEW_CAT_VALUE) {
       setShowNewCat(true)
-      setCategoryId('')
+      setParentCategoryId('')
+      setSubCategoryId('')
     } else {
-      setCategoryId(val)
+      setParentCategoryId(val)
+      setSubCategoryId('')
       setShowNewCat(false)
     }
   }
@@ -95,13 +116,14 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     const { data, error } = await supabase
       .from('article_categories')
       .insert({ name: newCatName.trim(), color: '#2563eb' })
-      .select('id, name, color')
+      .select('id, name, color, parent_id')
       .single()
     setCreatingCat(false)
     if (error || !data) { alert('作成に失敗しました'); return }
     const cat = data as Category
     setCategories((prev) => [...prev, cat].sort((a, b) => a.name.localeCompare(b.name, 'ja')))
-    setCategoryId(cat.id)
+    setParentCategoryId(cat.id)
+    setSubCategoryId('')
     setNewCatName('')
     setShowNewCat(false)
   }
@@ -192,7 +214,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
           {coverImageUrl && (
             <div className="relative mb-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={coverImageUrl} alt="カバー" className="w-full h-40 object-cover rounded-xl" />
+              <img src={coverImageUrl} alt="カバー" loading="lazy" decoding="async" className="w-full h-40 object-cover rounded-xl" />
               <button
                 type="button"
                 onClick={() => setCoverImageUrl('')}
@@ -217,44 +239,61 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
             placeholder="記事タイトル"
             className="w-full text-xl font-bold text-gray-900 placeholder-gray-300 focus:outline-none border-b border-gray-100 pb-3"
           />
-          <div className="flex items-center gap-3 flex-wrap">
-            <label className="text-xs font-medium text-gray-500 flex-shrink-0">カテゴリ</label>
-            {!showNewCat ? (
-              <select
-                value={categoryId}
-                onChange={(e) => handleSelectChange(e.target.value)}
-                className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1"
-              >
-                <option value="">なし</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-                <option value={NEW_CAT_VALUE}>＋ 新しいカテゴリーを作成</option>
-              </select>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <input
-                  ref={newCatInputRef}
-                  type="text"
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="カテゴリー名"
-                  className="text-sm border border-[#2563eb] rounded-lg px-2 py-1 focus:outline-none w-36"
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
-                />
-                <button
-                  onClick={handleCreateCategory}
-                  disabled={creatingCat || !newCatName.trim()}
-                  className="w-6 h-6 flex items-center justify-center bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="text-xs font-medium text-gray-500 flex-shrink-0 w-20">大カテゴリー</label>
+              {!showNewCat ? (
+                <select
+                  value={parentCategoryId}
+                  onChange={(e) => handleParentChange(e.target.value)}
+                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1 bg-white"
                 >
-                  <Check size={13} />
-                </button>
-                <button
-                  onClick={() => { setShowNewCat(false); setNewCatName('') }}
-                  className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-gray-200 transition-colors"
+                  <option value="">なし</option>
+                  {parentCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                  <option value={NEW_CAT_VALUE}>＋ 新しい大カテゴリーを作成</option>
+                </select>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    ref={newCatInputRef}
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="大カテゴリー名"
+                    className="text-sm border border-[#2563eb] rounded-lg px-2 py-1 focus:outline-none w-36"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
+                  />
+                  <button
+                    onClick={handleCreateCategory}
+                    disabled={creatingCat || !newCatName.trim()}
+                    className="w-6 h-6 flex items-center justify-center bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                  >
+                    <Check size={13} />
+                  </button>
+                  <button
+                    onClick={() => { setShowNewCat(false); setNewCatName('') }}
+                    className="w-6 h-6 flex items-center justify-center bg-gray-100 text-gray-500 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
+            </div>
+            {parentCategoryId && subCategories.length > 0 && (
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="text-xs font-medium text-gray-500 flex-shrink-0 w-20">小カテゴリー</label>
+                <select
+                  value={subCategoryId}
+                  onChange={(e) => setSubCategoryId(e.target.value)}
+                  className="text-sm text-gray-700 focus:outline-none border border-gray-200 rounded-lg px-2 py-1 bg-white"
                 >
-                  <X size={13} />
-                </button>
+                  <option value="">未指定（大カテゴリー直下）</option>
+                  {subCategories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               </div>
             )}
           </div>

@@ -1,0 +1,45 @@
+-- =============================================
+-- RLS 監査メモ（クローズ化に伴う確認）
+-- =============================================
+--
+-- 現状のRLSポリシー: ほとんどのテーブルが anon ロールに対して
+-- SELECT/INSERT/UPDATE/DELETE を許可している。
+--
+-- 対象テーブル:
+--   channels, messages, users, ideas, idea_reactions, idea_comments,
+--   articles, article_categories, photos, photo_categories,
+--   events, event_dates, event_responses など
+--
+-- 理由: フロントエンド (Next.js クライアント) は
+-- NEXT_PUBLIC_SUPABASE_ANON_KEY を用いて直接 Supabase を叩く実装のため、
+-- anon ロールへの権限を全面的に絞ると既存機能が動作しなくなる。
+--
+-- クローズ化の一次防御は middleware.ts のCookie認証で担保している:
+--   - 未ログインの UI アクセスは / にリダイレクト
+--   - 未ログインの /api/* リクエストは 401
+--
+-- 追加ハードニング (将来対応):
+--   1. 全ての read/write を /api/* 経由 (service_role) に移し、
+--      RLS は service_role のみ許可へ変更
+--   2. Supabase Auth を導入し、authenticated ロールで RLS を絞る
+--
+-- 直ちに実施できる最低限の締め付け:
+--   - users.slack_token を SELECT できるロールから anon を除外
+--     (トークンが漏洩するとユーザーとして Slack API を叩けるため最優先)
+--
+-- ↓ ユーザーのSlackトークンをanonから隠すためのVIEW & ポリシー変更
+--   （安全に適用したい場合はコメントアウトを外す）
+
+-- -- 既存の users_select_all を DROP して、
+-- -- anon にはトークンを見せないカラム絞りビューを提供する例
+-- DROP POLICY IF EXISTS "users_select_all" ON users;
+--
+-- CREATE POLICY "users_select_public_columns" ON users
+--   FOR SELECT
+--   TO anon, authenticated
+--   USING (true);
+--
+-- -- anon から slack_token カラム自体を触れないようにするには
+-- -- 列レベルの GRANT を使う:
+-- REVOKE SELECT (slack_token) ON users FROM anon;
+-- REVOKE SELECT (slack_token) ON users FROM authenticated;

@@ -513,7 +513,7 @@ async function getSupabaseChannelId(slackChannelId: string): Promise<string | nu
   }
 }
 
-function getUserName(slackUserId: string, eventProfile?: Record<string, unknown>): string {
+async function getUserName(slackUserId: string, eventProfile?: Record<string, unknown>): Promise<string> {
   if (userCache.has(slackUserId)) return userCache.get(slackUserId)!
 
   // 1. 静的マッピングを優先（users.jsonから生成）
@@ -525,12 +525,49 @@ function getUserName(slackUserId: string, eventProfile?: Record<string, unknown>
 
   // 2. イベントペイロードの user_profile にフォールバック
   if (eventProfile) {
-    const name = (eventProfile.display_name as string) || (eventProfile.real_name as string) || slackUserId
-    userCache.set(slackUserId, name)
-    return name
+    const name = (eventProfile.display_name as string) || (eventProfile.real_name as string) || ''
+    if (name) {
+      userCache.set(slackUserId, name)
+      return name
+    }
   }
 
-  // プロフィール情報がなければユーザーIDをそのまま使用
+  // 3. usersテーブルから取得
+  try {
+    const sb = getSupabase()
+    const { data } = await sb
+      .from('users')
+      .select('display_name')
+      .eq('slack_user_id', slackUserId)
+      .maybeSingle()
+    if (data?.display_name) {
+      userCache.set(slackUserId, data.display_name)
+      return data.display_name
+    }
+  } catch {
+    /* ignore */
+  }
+
+  // 4. 最後の砦: Slack users.info を呼んで取得し、usersテーブルにも書き込む
+  try {
+    const token = (process.env.SLACK_BOT_TOKEN ?? '').trim()
+    if (token) {
+      const res = await fetch(`https://slack.com/api/users.info?user=${slackUserId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+      const json = await res.json() as { ok: boolean; user?: SlackUserPayload }
+      if (json.ok && json.user) {
+        await upsertSlackUser(json.user)
+        const name = userCache.get(slackUserId) ?? slackUserId
+        return name
+      }
+    }
+  } catch (err) {
+    console.warn('[slack] users.info fallback failed:', err)
+  }
+
+  // 5. 何も取れなければ ID をそのまま使う
   userCache.set(slackUserId, slackUserId)
   return slackUserId
 }
@@ -554,6 +591,64 @@ async function getAvatarUrl(slackUserId: string): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+// ── User event handlers ───────────────────────────────────────────────────
+
+// Slack team_join / user_change の event.user に含まれるプロフィール構造
+interface SlackUserPayload {
+  id: string
+  deleted?: boolean
+  is_bot?: boolean
+  profile?: {
+    display_name?: string
+    real_name?: string
+    image_192?: string
+    image_72?: string
+    image_48?: string
+  }
+}
+
+async function upsertSlackUser(u: SlackUserPayload): Promise<void> {
+  if (!u?.id) return
+  if (u.deleted || u.is_bot) {
+    console.log('[slack] upsertSlackUser skip (deleted or bot):', u.id)
+    return
+  }
+  const displayName =
+    u.profile?.display_name?.trim() ||
+    u.profile?.real_name?.trim() ||
+    u.id
+  const avatarUrl =
+    u.profile?.image_192 ?? u.profile?.image_72 ?? u.profile?.image_48 ?? null
+
+  const sb = getSupabase()
+  const { error } = await sb
+    .from('users')
+    .upsert(
+      { slack_user_id: u.id, display_name: displayName, avatar_url: avatarUrl },
+      { onConflict: 'slack_user_id', ignoreDuplicates: false }
+    )
+  if (error) {
+    console.error('[slack] users upsert error:', error.message, '| user:', u.id)
+  } else {
+    console.log('[slack] users upserted:', u.id, displayName)
+    // ローカルキャッシュも更新して次回以降のメッセージで使えるようにする
+    userCache.set(u.id, displayName)
+    if (avatarUrl) avatarCache.set(u.id, avatarUrl)
+  }
+}
+
+async function handleTeamJoin(event: Record<string, unknown>): Promise<void> {
+  const user = event.user as SlackUserPayload | undefined
+  console.log('[slack] team_join:', user?.id, user?.profile?.display_name ?? user?.profile?.real_name)
+  if (user) await upsertSlackUser(user)
+}
+
+async function handleUserChange(event: Record<string, unknown>): Promise<void> {
+  const user = event.user as SlackUserPayload | undefined
+  console.log('[slack] user_change:', user?.id, user?.profile?.display_name ?? user?.profile?.real_name)
+  if (user) await upsertSlackUser(user)
 }
 
 // ── Channel event handlers ────────────────────────────────────────────────
@@ -708,7 +803,7 @@ async function handleMessage(event: Record<string, unknown>): Promise<void> {
 
   let userName: string
   try {
-    userName = getUserName(userId, userProfile)
+    userName = await getUserName(userId, userProfile)
     console.log('[slack] getUserName result:', userName)
   } catch (err) {
     console.error('[slack] getUserName threw:', err)
@@ -840,6 +935,8 @@ export async function POST(req: NextRequest) {
       else if (event.type === 'channel_deleted') await handleChannelDeleted(event)
       else if (event.type === 'channel_renamed') await handleChannelRenamed(event)
       else if (event.type === 'channel_archived') await handleChannelArchived(event)
+      else if (event.type === 'team_join') await handleTeamJoin(event)
+      else if (event.type === 'user_change') await handleUserChange(event)
       else console.log('[slack] unhandled event type:', event.type)
     } catch (err) {
       console.error('[slack] event error:', err)

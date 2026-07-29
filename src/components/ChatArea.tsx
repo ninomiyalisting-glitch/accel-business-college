@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Hash, Menu, Users, Search, Sparkles } from 'lucide-react'
 import { Channel, Message, ReactionsMap, CustomEmojis } from '@/types'
@@ -11,19 +11,22 @@ import ChatSearch from './ChatSearch'
 
 type AvatarMap = Record<string, string>
 type UserInfoMap = Record<string, MemberInfo>
+type UserBySlackId = Record<string, { displayName: string; avatarUrl: string | null }>
 
 interface Props {
   channel: Channel
   messages: Message[]
-  onSendMessage: (content: string) => Promise<void>
+  onSendMessage: (content: string, threadTs?: string) => Promise<void>
   onMenuClick: () => void
   userName: string
+  currentSlackUserId?: string | null
   memberCount?: number
   hasMore?: boolean
   onLoadMore?: () => void
   reactionsMap?: ReactionsMap
   avatarMap?: AvatarMap
   userInfoMap?: UserInfoMap
+  userBySlackId?: UserBySlackId
   customEmojis?: CustomEmojis
   channelMap?: Record<string, string>
   onAddReaction?: (msg: Message, reaction: string) => void
@@ -38,12 +41,14 @@ export default function ChatArea({
   onSendMessage,
   onMenuClick,
   userName,
+  currentSlackUserId,
   memberCount,
   hasMore,
   onLoadMore,
   reactionsMap,
   avatarMap,
   userInfoMap,
+  userBySlackId,
   customEmojis,
   channelMap,
   onAddReaction,
@@ -52,7 +57,22 @@ export default function ChatArea({
   onSelectChannelByName,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false)
+  const [replyTo, setReplyTo] = useState<Message | null>(null)
   const router = useRouter()
+
+  // チャンネル切り替え時に返信モード解除
+  useEffect(() => {
+    setReplyTo(null)
+  }, [channel.id])
+
+  const handleSubmitWithThread = useCallback(
+    async (content: string) => {
+      const threadTs = replyTo?.created_at
+      await onSendMessage(content, threadTs)
+      setReplyTo(null)
+    },
+    [onSendMessage, replyTo]
+  )
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
@@ -129,24 +149,30 @@ export default function ChatArea({
       <MessageList
         messages={messages}
         currentUserName={userName}
+        currentSlackUserId={currentSlackUserId}
         channelName={channel.name}
         hasMore={hasMore}
         onLoadMore={onLoadMore}
         reactionsMap={reactionsMap}
         avatarMap={avatarMap}
         userInfoMap={userInfoMap}
+        userBySlackId={userBySlackId}
         customEmojis={customEmojis}
         onAddReaction={onAddReaction}
         onEditMessage={onEditMessage}
         onDeleteMessage={onDeleteMessage}
+        onReplyMessage={(msg) => setReplyTo(msg)}
+        replyingToId={replyTo?.id ?? null}
       />
 
       {/* 入力フォーム */}
       <div className="flex-shrink-0 border-t border-gray-100">
         <MessageForm
-          onSubmit={onSendMessage}
+          onSubmit={handleSubmitWithThread}
           channelName={channel.name}
           disabled={!userName}
+          replyTo={replyTo ? { userName: replyTo.user_name, content: replyTo.content } : null}
+          onCancelReply={() => setReplyTo(null)}
         />
       </div>
     </div>

@@ -13,6 +13,7 @@ const SLACK_USER_KEY = 'abc_slackUser'
 interface EventDate {
   id: string
   date: string
+  end_time?: string | null
 }
 
 interface Event {
@@ -47,20 +48,29 @@ export default function EventsPage() {
         .from('events')
         .select('*')
         .order('created_at', { ascending: false })
+        .limit(50)
 
-      if (!data) { setLoading(false); return }
+      if (!data || data.length === 0) {
+        setEvents([])
+        setLoading(false)
+        return
+      }
 
-      // Fetch dates and response counts per event
-      const { data: dates } = await supabase.from('event_dates').select('event_id, id, date').order('date')
-      const { data: responses } = await supabase.from('event_responses').select('event_id, responder_name')
+      const ids = data.map((e) => e.id)
+
+      // Scope dates+responses to just the loaded events
+      const [datesRes, respRes] = await Promise.all([
+        supabase.from('event_dates').select('event_id, id, date, end_time').in('event_id', ids).order('date'),
+        supabase.from('event_responses').select('event_id, responder_name').in('event_id', ids),
+      ])
 
       const datesByEvent: Record<string, EventDate[]> = {}
-      for (const d of dates ?? []) {
+      for (const d of (datesRes.data ?? []) as Array<{ event_id: string; id: string; date: string; end_time?: string | null }>) {
         if (!datesByEvent[d.event_id]) datesByEvent[d.event_id] = []
-        datesByEvent[d.event_id].push({ id: d.id, date: d.date })
+        datesByEvent[d.event_id].push({ id: d.id, date: d.date, end_time: d.end_time ?? null })
       }
       const responseCounts: Record<string, Set<string>> = {}
-      for (const r of responses ?? []) {
+      for (const r of respRes.data ?? []) {
         if (!responseCounts[r.event_id]) responseCounts[r.event_id] = new Set()
         responseCounts[r.event_id].add(r.responder_name)
       }
@@ -164,9 +174,11 @@ export default function EventsPage() {
                       {(ev.dates ?? []).slice(0, 3).map((d) => {
                         const dt = new Date(d.date)
                         const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0
+                        const base = format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })
+                        const label = hasTime && d.end_time ? `${base}〜${format(new Date(d.end_time), 'HH:mm')}` : base
                         return (
                           <span key={d.id} className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
-                            {format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })}
+                            {label}
                           </span>
                         )
                       })}
