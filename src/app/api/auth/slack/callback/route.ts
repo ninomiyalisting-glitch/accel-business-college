@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SESSION_COOKIE, signSession } from '@/lib/session'
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
   console.log('[slack/callback] redirecting to:', successUrl.substring(0, 100))
   const response = NextResponse.redirect(successUrl)
   // 認証済みマーカー Cookie（middleware / API 認可用）
-  response.cookies.set('abc_slack_user_id', slackUserId, {
+  response.cookies.set(SESSION_COOKIE, await signSession(slackUserId), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

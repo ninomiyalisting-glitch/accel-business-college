@@ -63,44 +63,44 @@ function MemberCard({ user, profile, stats }: { user: DBUser; profile?: MemberPr
   const inner = (
     <>
       {user.avatar_url && !avatarError ? (
-        <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0">
+        <div className="w-full aspect-square rounded-2xl overflow-hidden bg-accel-lightest/50">
           <Image
             src={user.avatar_url}
             alt={user.display_name}
-            width={56}
-            height={56}
+            width={256}
+            height={256}
             className="w-full h-full object-cover"
             onError={() => setAvatarError(true)}
           />
         </div>
       ) : (
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-lg flex-shrink-0 ${getAvatarColor(user.display_name)}`}>
+        <div className={`w-full aspect-square rounded-2xl flex items-center justify-center text-white font-bold text-3xl ${getAvatarColor(user.display_name)}`}>
           {user.display_name.charAt(0).toUpperCase()}
         </div>
       )}
-      <p className="text-xs font-semibold text-gray-800 line-clamp-2 leading-snug w-full text-center">{user.display_name}</p>
+      <p className="text-base font-bold text-accel-dark line-clamp-2 w-full text-center">{user.display_name}</p>
       {(profile?.prefecture || profile?.organization) && (
         <div className="w-full space-y-0.5">
           {profile.organization && (
-            <p className="text-[10px] text-gray-500 line-clamp-1 text-center leading-tight">{profile.organization}</p>
+            <p className="text-sm text-gray-600 line-clamp-1 text-center">{profile.organization}</p>
           )}
           {profile.prefecture && (
-            <p className="text-[10px] text-gray-400 line-clamp-1 text-center leading-tight">{profile.prefecture}</p>
+            <p className="text-sm text-gray-500 line-clamp-1 text-center">{profile.prefecture}</p>
           )}
         </div>
       )}
       {profile?.headline && (
-        <p className="text-[10px] text-[#1f7a00] line-clamp-1 text-center leading-tight w-full italic">{profile.headline}</p>
+        <p className="text-sm text-accel-active line-clamp-1 text-center w-full">{profile.headline}</p>
       )}
       {stats && stats.count > 0 && (
-        <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full leading-tight">
+        <span className="text-xs text-gray-500 bg-accel-lightest/60 px-2.5 py-0.5 rounded-full">
           投稿 {stats.count}件
         </span>
       )}
     </>
   )
 
-  const cls = "bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-col items-center gap-1.5 hover:shadow-md hover:border-[#279300]/20 transition-all active:scale-95 text-center"
+  const cls = "bg-white rounded-3xl border border-accel-lightest shadow-sm p-3 sm:p-4 flex flex-col items-center gap-2 hover:shadow-lg hover:border-accel-light transition-all active:scale-95 text-center"
 
   return href ? (
     <Link href={href} className={cls}>{inner}</Link>
@@ -271,7 +271,7 @@ export default function MembersPage() {
           <Users size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px]">メンバー一覧</h1>
           <div className="ml-auto flex items-center gap-2">
-            {!loading && <span className="text-xs text-gray-400">{users.length}人</span>}
+            {!loading && <span className="text-sm text-gray-500">{users.length}人</span>}
             {mySlackUserId && (
               <button
                 onClick={() => router.push('/members/edit')}
@@ -336,12 +336,12 @@ export default function MembersPage() {
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
             {Array.from({ length: 20 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 flex flex-col items-center gap-2 animate-pulse">
-                <div className="w-14 h-14 rounded-xl bg-gray-100" />
-                <div className="h-3 bg-gray-100 rounded w-3/4" />
-                <div className="h-2.5 bg-gray-100 rounded w-1/2" />
+              <div key={i} className="bg-white rounded-3xl border border-accel-lightest p-3 sm:p-4 flex flex-col items-center gap-2 animate-pulse">
+                <div className="w-full aspect-square rounded-2xl bg-accel-lightest/60" />
+                <div className="h-4 bg-accel-lightest/60 rounded w-3/4" />
+                <div className="h-3 bg-accel-lightest/50 rounded w-1/2" />
               </div>
             ))}
           </div>
@@ -352,7 +352,7 @@ export default function MembersPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
               {sorted.map((user) => (
                 <MemberCard
                   key={user.slack_user_id ?? user.display_name}

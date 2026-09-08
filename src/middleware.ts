@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 // 認証不要のパス
 const PUBLIC_PATHS = ['/', '/auth/error']
@@ -27,7 +28,7 @@ function unauthorizedResponse(request: NextRequest): NextResponse {
   return NextResponse.redirect(loginUrl)
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // 公開パスはスルー
@@ -38,8 +39,18 @@ export function middleware(request: NextRequest) {
     return response
   }
 
-  // 認証 Cookie チェック
-  const slackUserId = request.cookies.get('abc_slack_user_id')?.value
+  // 設定漏れの切り分け。これが無いと「ログインしてもすぐ / に戻る」だけが起きて
+  // 原因が分からなくなる。環境変数の未設定はその旨をはっきり返す。
+  if (!process.env.SESSION_SECRET) {
+    return NextResponse.json(
+      { error: 'SESSION_SECRET が未設定のため認証できません。Vercel の環境変数を設定してください。' },
+      { status: 500 }
+    )
+  }
+
+  // 認証 Cookie チェック。署名を検証するので、自分で作った Cookie は通らない。
+  // 署名導入前の古い Cookie もここで無効になり、再ログインに回る。
+  const slackUserId = await verifySession(request.cookies.get(SESSION_COOKIE)?.value)
   if (!slackUserId) {
     return unauthorizedResponse(request)
   }

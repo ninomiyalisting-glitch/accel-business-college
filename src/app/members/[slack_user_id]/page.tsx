@@ -8,6 +8,7 @@ import { ArrowLeft, MapPin, Building2, MessageCircle, Pencil, Briefcase, Star, F
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
+import PracticePoints from '@/components/PracticePoints'
 
 const SLACK_TEAM_ID = 'T058E88UB40'
 const SLACK_USER_KEY = 'abc_slackUser'
@@ -161,23 +162,23 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
 
       <main className="max-w-2xl mx-auto px-4 pt-6 pb-bottom-nav space-y-4">
         {/* Hero card */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="h-20 bg-gradient-to-r from-[#279300]/20 via-[#279300]/10 to-transparent" />
-          <div className="px-6 pb-6 -mt-10">
+        <div className="bg-white rounded-3xl border border-accel-lightest shadow-sm overflow-hidden">
+          <div className="h-28 bg-gradient-to-br from-accel-light/60 via-accel-lightest to-white" />
+          <div className="px-6 pb-7 -mt-14">
             <div className="flex items-end justify-between mb-4">
               {user.avatar_url && !avatarError ? (
-                <div className="w-20 h-20 rounded-2xl overflow-hidden ring-4 ring-white shadow-md">
+                <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden ring-4 ring-white shadow-lg">
                   <Image
                     src={user.avatar_url}
                     alt={user.display_name}
-                    width={80}
-                    height={80}
+                    width={128}
+                    height={128}
                     className="w-full h-full object-cover"
                     onError={() => setAvatarError(true)}
                   />
                 </div>
               ) : (
-                <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-white font-bold text-2xl ring-4 ring-white shadow-md ${getAvatarColor(user.display_name)}`}>
+                <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-3xl flex items-center justify-center text-white font-bold text-3xl ring-4 ring-white shadow-lg ${getAvatarColor(user.display_name)}`}>
                   {user.display_name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -190,7 +191,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
               </button>
             </div>
 
-            <h1 className="text-xl font-bold text-gray-900">{user.display_name}</h1>
+            <h1 className="text-2xl font-bold text-accel-dark mt-1">{user.display_name}</h1>
 
             <div className="flex flex-wrap gap-3 mt-2">
               {profile?.prefecture && (
@@ -250,8 +251,10 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
           </div>
         )}
 
+        <PracticePoints slackUserId={slack_user_id} />
+
         {/* Recent posts */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-accel-lightest shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
             <MessageSquare size={15} className="text-[#1f7a00]" />
             <span className="font-semibold text-gray-900 text-sm">最近の投稿</span>
