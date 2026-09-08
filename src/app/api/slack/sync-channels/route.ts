@@ -21,7 +21,21 @@ interface SupabaseChannel {
   slack_channel_id: string | null
 }
 
-async function fetchAllSlackChannels(token: string): Promise<SlackChannel[]> {
+type SlackFetch =
+  | { ok: true; channels: SlackChannel[] }
+  | { ok: false; channels: SlackChannel[]; error: string }
+
+/**
+ * Slack のチャンネル一覧を取得する。
+ *
+ * 【重要】失敗を空配列で返してはいけない。
+ * 呼び出し側は「Slack に無いチャンネルは DB から削除する」という差分処理をするため、
+ * 失敗を空配列で返すと DB の全チャンネルが削除対象になる。
+ * messages は channels を ON DELETE CASCADE で参照しているので、
+ * その場合はメッセージ履歴まで丸ごと消える。
+ * 取得に失敗したことは必ず ok:false で伝えること。
+ */
+async function fetchAllSlackChannels(token: string): Promise<SlackFetch> {
   const channels: SlackChannel[] = []
   let cursor: string | undefined
 
@@ -32,10 +46,17 @@ async function fetchAllSlackChannels(token: string): Promise<SlackChannel[]> {
     url.searchParams.set('limit', '200')
     if (cursor) url.searchParams.set('cursor', cursor)
 
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
-    })
+    let res: Response
+    try {
+      res = await fetch(url.toString(), {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      console.error('[sync-channels] Slack fetch failed:', message)
+      return { ok: false, channels, error: `Slack への接続に失敗しました：${message}` }
+    }
     const json = await res.json() as {
       ok: boolean
       channels?: SlackChannel[]
@@ -45,7 +66,7 @@ async function fetchAllSlackChannels(token: string): Promise<SlackChannel[]> {
 
     if (!json.ok) {
       console.error('[sync-channels] Slack API error:', json.error)
-      break
+      return { ok: false, channels, error: json.error ?? 'Slack API error' }
     }
 
     for (const ch of json.channels ?? []) {
@@ -56,7 +77,7 @@ async function fetchAllSlackChannels(token: string): Promise<SlackChannel[]> {
     if (!cursor) break
   }
 
-  return channels
+  return { ok: true, channels }
 }
 
 export async function POST() {
@@ -68,10 +89,42 @@ export async function POST() {
   const sb = getSupabase()
 
   // 1. Fetch from Slack and Supabase in parallel
-  const [slackChannels, dbResult] = await Promise.all([
+  const [slackResult, dbResult] = await Promise.all([
     fetchAllSlackChannels(token),
     sb.from('channels').select('*'),
   ])
+
+  // Slack の取得に失敗したときは、差分処理を一切やらずに DB の内容をそのまま返す。
+  // ここで進めると「Slack に 0 件」＝「全部消す」になり、messages まで
+  // ON DELETE CASCADE で消える。実際にこれで履歴を失った。
+  if (!slackResult.ok) {
+    console.error('[sync-channels] Slack 取得に失敗したため同期を中止:', slackResult.error)
+    const { data: current } = await sb.from('channels').select('*').order('name')
+    return NextResponse.json({
+      data: current ?? [],
+      inserted: 0,
+      deleted: 0,
+      skipped: true,
+      error: `Slack からチャンネル一覧を取得できなかったため同期を中止しました：${slackResult.error}`,
+    })
+  }
+
+  const slackChannels = slackResult.channels
+
+  // 取得は成功したが 0 件、というのは通常ありえない（公開チャンネルが 1 つも無い状態）。
+  // 権限不足などでこうなる場合があるため、削除には進まない。
+  if (slackChannels.length === 0) {
+    console.error('[sync-channels] Slack のチャンネルが 0 件。削除を避けるため同期を中止')
+    const { data: current } = await sb.from('channels').select('*').order('name')
+    return NextResponse.json({
+      data: current ?? [],
+      inserted: 0,
+      deleted: 0,
+      skipped: true,
+      error:
+        'Slack から取得したチャンネルが 0 件でした。Bot の権限（channels:read）や参加状況を確認してください。安全のため同期は行っていません。',
+    })
+  }
 
   if (dbResult.error) {
     console.error('[sync-channels] Supabase fetch error:', dbResult.error)
@@ -184,7 +237,16 @@ export async function POST() {
     else inserted = toInsert.length
   }
 
-  if (toDeleteIds.length > 0) {
+  // 最後の保険。全チャンネルを消す同期は正常な結果ではありえない。
+  // 上流のガードをすり抜けた場合でも、ここで止める。
+  const wouldDeleteEverything =
+    dbChannels.length > 0 && toDeleteIds.length >= dbChannels.length
+
+  if (wouldDeleteEverything) {
+    console.error(
+      `[sync-channels] 全 ${dbChannels.length} 件が削除対象になったため削除を中止しました`
+    )
+  } else if (toDeleteIds.length > 0) {
     const { error } = await sb.from('channels').delete().in('id', toDeleteIds)
     if (error) console.error('[sync-channels] delete error:', error.message)
     else deleted = toDeleteIds.length
