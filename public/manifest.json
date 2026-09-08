@@ -4,8 +4,8 @@
   "description": "アクセルビジネスカレッジ コミュニティチャット",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#3B2A4A",
-  "theme_color": "#3B2A4A",
+  "background_color": "#ffffff",
+  "theme_color": "#1f7a00",
   "orientation": "portrait-primary",
   "icons": [
     {

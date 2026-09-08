@@ -22,7 +22,7 @@ function ErrorContent() {
   const message = messages[reason] ?? `不明なエラーが発生しました (${reason})`
 
   return (
-    <div className="min-h-screen bg-[#3B2A4A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0d3800] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 text-center">
         <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <span className="text-red-500 text-3xl">!</span>
@@ -32,7 +32,7 @@ function ErrorContent() {
         <p className="text-xs text-gray-400 mb-6 font-mono bg-gray-50 rounded px-2 py-1">{reason}</p>
         <a
           href="/"
-          className="inline-block bg-purple-700 hover:bg-purple-800 text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+          className="inline-block bg-accel-active hover:bg-accel-text text-white font-semibold py-3 px-8 rounded-xl transition-colors"
         >
           トップへ戻る
         </a>
@@ -43,7 +43,7 @@ function ErrorContent() {
 
 export default function AuthErrorPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#3B2A4A]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[#0d3800]" />}>
       <ErrorContent />
     </Suspense>
   )

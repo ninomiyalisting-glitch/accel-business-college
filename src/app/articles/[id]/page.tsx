@@ -66,7 +66,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9]">
+      <div className="min-h-screen bg-[#f7faf2]">
         <div className="max-w-3xl mx-auto px-4 py-16 animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-2/3" />
           <div className="h-4 bg-gray-100 rounded w-1/3" />
@@ -78,17 +78,17 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
 
   if (!article) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
         <div className="text-center text-gray-400">
           <p className="mb-4">記事が見つかりません</p>
-          <Link href="/articles" className="text-[#2563eb] hover:underline text-sm">← 記事一覧に戻る</Link>
+          <Link href="/articles" className="text-[#1f7a00] hover:underline text-sm">← 記事一覧に戻る</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/articles" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -96,7 +96,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
             <span className="text-sm hidden sm:inline">記事一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <BookOpen size={17} className="text-[#2563eb]" />
+          <BookOpen size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px] flex-1 truncate">ナレッジベース</h1>
           {canEdit && (
             <div className="flex items-center gap-2">

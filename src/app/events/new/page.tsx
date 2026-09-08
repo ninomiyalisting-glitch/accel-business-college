@@ -156,11 +156,11 @@ export default function NewEventPage() {
 
   if (!myName) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center max-w-sm w-full shadow-sm">
           <CalendarDays size={40} className="text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 font-medium mb-2">Slackログインが必要です</p>
-          <Link href="/chat" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm hover:bg-[#1d4ed8] transition-colors">
+          <Link href="/chat" className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors">
             ログインページへ
           </Link>
         </div>
@@ -169,7 +169,7 @@ export default function NewEventPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -181,7 +181,7 @@ export default function NewEventPage() {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
           >
             {saving ? <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Send size={13} />}
             作成する
@@ -199,7 +199,7 @@ export default function NewEventPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="例：5月勉強会の日程調整"
-              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
             />
           </div>
           <div>
@@ -209,7 +209,7 @@ export default function NewEventPage() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="詳細や注意事項など"
               rows={3}
-              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] resize-none"
+              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] resize-none"
             />
           </div>
           <div>
@@ -221,7 +221,7 @@ export default function NewEventPage() {
               value={coverImageUrl}
               onChange={(e) => setCoverImageUrl(e.target.value)}
               placeholder="画像URLを直接入力 / 下のボタンから選択もOK"
-              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
             />
             <div className="grid grid-cols-3 gap-2 mt-2">
               <button
@@ -239,10 +239,10 @@ export default function NewEventPage() {
                 type="button"
                 onClick={fetchCoverFromTitle}
                 disabled={fetchingCover}
-                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-[#2563eb] border border-[#2563eb]/30 rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                className="flex items-center justify-center gap-1.5 px-2 py-2 text-xs text-[#1f7a00] border border-[#279300]/30 rounded-xl hover:bg-accel-lightest disabled:opacity-50 transition-colors"
               >
                 {fetchingCover
-                  ? <div className="w-3.5 h-3.5 border-2 border-[#2563eb]/40 border-t-[#2563eb] rounded-full animate-spin" />
+                  ? <div className="w-3.5 h-3.5 border-2 border-[#279300]/40 border-t-[#279300] rounded-full animate-spin" />
                   : <Sparkles size={13} />}
                 AI生成
               </button>
@@ -250,7 +250,7 @@ export default function NewEventPage() {
                 type="button"
                 onClick={() => setShowGallery((v) => !v)}
                 className={`flex items-center justify-center gap-1.5 px-2 py-2 text-xs border rounded-xl transition-colors ${
-                  showGallery ? 'border-[#2563eb] text-[#2563eb] bg-blue-50' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                  showGallery ? 'border-[#279300] text-[#1f7a00] bg-accel-lightest' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                 }`}
               >
                 <GalleryHorizontal size={13} />
@@ -290,7 +290,7 @@ export default function NewEventPage() {
                 type="datetime-local"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
               />
             </div>
             <div>
@@ -298,7 +298,7 @@ export default function NewEventPage() {
               <select
                 value={notifyChannelId}
                 onChange={(e) => setNotifyChannelId(e.target.value)}
-                className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] bg-white"
+                className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white"
               >
                 <option value="">通知しない</option>
                 {channels.map((c) => (
@@ -315,7 +315,7 @@ export default function NewEventPage() {
             <h2 className="font-semibold text-gray-900 text-sm">候補日程</h2>
             <button
               onClick={addSlot}
-              className="flex items-center gap-1 text-xs text-[#2563eb] hover:text-[#1d4ed8] font-medium transition-colors"
+              className="flex items-center gap-1 text-xs text-[#1f7a00] hover:text-[#1f7a00] font-medium transition-colors"
             >
               <Plus size={13} /> 日程を追加
             </button>
@@ -329,13 +329,13 @@ export default function NewEventPage() {
                   type="date"
                   value={slot.date}
                   onChange={(e) => updateSlot(i, 'date', e.target.value)}
-                  className="flex-1 min-w-[120px] text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="flex-1 min-w-[120px] text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                 />
                 <input
                   type="time"
                   value={slot.time}
                   onChange={(e) => updateSlot(i, 'time', e.target.value)}
-                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                   placeholder="開始"
                 />
                 <span className="text-xs text-gray-400">〜</span>
@@ -343,7 +343,7 @@ export default function NewEventPage() {
                   type="time"
                   value={slot.endTime}
                   onChange={(e) => updateSlot(i, 'endTime', e.target.value)}
-                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="w-24 text-sm text-gray-800 border border-gray-200 rounded-xl px-2 py-2 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                   placeholder="終了"
                   disabled={!slot.time}
                 />
@@ -361,7 +361,7 @@ export default function NewEventPage() {
         <button
           onClick={handleSubmit}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
         >
           {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Send size={15} />}
           イベントを作成する

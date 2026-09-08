@@ -115,7 +115,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     setCreatingCat(true)
     const { data, error } = await supabase
       .from('article_categories')
-      .insert({ name: newCatName.trim(), color: '#2563eb' })
+      .insert({ name: newCatName.trim(), color: '#279300' })
       .select('id, name, color, parent_id')
       .single()
     setCreatingCat(false)
@@ -169,7 +169,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
   if (loadingArticle) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
         <div className="text-gray-400 text-sm">読み込み中...</div>
       </div>
     )
@@ -178,7 +178,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   if (!authorized) return null
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href={`/articles/${id}`} className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -186,7 +186,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
             <span className="text-sm hidden sm:inline">記事に戻る</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <BookOpen size={17} className="text-[#2563eb]" />
+          <BookOpen size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px] flex-1">記事を編集</h1>
           <div className="flex items-center gap-2">
             <button
@@ -199,7 +199,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
             <button
               onClick={() => handleSave(true)}
               disabled={saving}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-[#2563eb] hover:bg-[#1d4ed8] rounded-lg transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? '保存中...' : published ? '更新する' : '公開する'}
             </button>
@@ -262,13 +262,13 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                     value={newCatName}
                     onChange={(e) => setNewCatName(e.target.value)}
                     placeholder="大カテゴリー名"
-                    className="text-sm border border-[#2563eb] rounded-lg px-2 py-1 focus:outline-none w-36"
+                    className="text-sm border border-[#279300] rounded-lg px-2 py-1 focus:outline-none w-36"
                     onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
                   />
                   <button
                     onClick={handleCreateCategory}
                     disabled={creatingCat || !newCatName.trim()}
-                    className="w-6 h-6 flex items-center justify-center bg-[#2563eb] text-white rounded-md hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                    className="w-6 h-6 flex items-center justify-center bg-[#1f7a00] text-white rounded-md hover:bg-[#145200] disabled:opacity-50 transition-colors"
                   >
                     <Check size={13} />
                   </button>

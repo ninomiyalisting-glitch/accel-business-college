@@ -6,3 +6,7 @@
 node_modules/
 .next/
 .claude/
+
+# 入れ子の別プロジェクト（独自の git リポジトリを持つ）
+/accel-dash/
+.DS_Store

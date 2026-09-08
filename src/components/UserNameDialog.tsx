@@ -37,7 +37,7 @@ export default function UserNameDialog({ onSubmit, currentChannel }: Props) {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         {/* ロゴ・タイトル */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="w-16 h-16 bg-gradient-to-br from-accel-primary to-accel-text rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white font-bold text-2xl">A</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">アクセルビジネスカレッジ</h1>
@@ -48,7 +48,7 @@ export default function UserNameDialog({ onSubmit, currentChannel }: Props) {
         <button
           type="button"
           onClick={handleSlackLogin}
-          className="w-full flex items-center justify-center gap-3 bg-[#4A154B] hover:bg-[#3d1040] text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-md mb-6"
+          className="w-full flex items-center justify-center gap-3 bg-slack-brand hover:bg-slack-brandDark text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-md mb-6"
         >
           <svg width="20" height="20" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19.712 33.399c0 2.896-2.355 5.248-5.256 5.248-2.9 0-5.256-2.352-5.256-5.248 0-2.895 2.356-5.247 5.256-5.247h5.256v5.247z" fill="#E01E5A"/>
@@ -86,7 +86,7 @@ export default function UserNameDialog({ onSubmit, currentChannel }: Props) {
                 setError('')
               }}
               placeholder="例: 田中 太郎"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-accel-primary focus:border-transparent transition"
               autoFocus
               maxLength={20}
             />
@@ -96,7 +96,7 @@ export default function UserNameDialog({ onSubmit, currentChannel }: Props) {
           </div>
           <button
             type="submit"
-            className="w-full bg-purple-700 hover:bg-purple-800 text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-md"
+            className="w-full bg-accel-active hover:bg-accel-text text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-md"
           >
             参加する
           </button>

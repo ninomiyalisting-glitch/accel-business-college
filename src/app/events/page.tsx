@@ -87,7 +87,7 @@ export default function EventsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -95,12 +95,12 @@ export default function EventsPage() {
             <span className="text-sm hidden sm:inline">ダッシュボード</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <CalendarDays size={17} className="text-[#2563eb]" />
+          <CalendarDays size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px] flex-1">日程調整</h1>
           {myName && (
             <button
               onClick={() => router.push('/events/new')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-lg text-xs font-medium transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
             >
               <Plus size={13} /> イベントを作成
             </button>
@@ -129,14 +129,14 @@ export default function EventsPage() {
             <CalendarDays size={40} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">まだイベントがありません</p>
             {myName && (
-              <Link href="/events/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm font-medium hover:bg-[#1d4ed8] transition-colors">
+              <Link href="/events/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors">
                 <Plus size={15} /> 最初のイベントを作成
               </Link>
             )}
           </div>
         ) : (
           events.map((ev) => (
-            <Link key={ev.id} href={`/events/${ev.id}`} className="block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#2563eb]/20 transition-all p-4">
+            <Link key={ev.id} href={`/events/${ev.id}`} className="block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-[#279300]/20 transition-all p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -145,7 +145,7 @@ export default function EventsPage() {
                         <CheckCircle2 size={10} /> 日程確定
                       </span>
                     ) : (
-                      <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+                      <span className="text-[10px] px-2 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium">
                         回答受付中
                       </span>
                     )}

@@ -86,7 +86,7 @@ export default function BottomNav() {
               key={href}
               href={href}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                active ? 'text-[#60a5fa]' : 'text-white/50 hover:text-white/80'
+                active ? 'text-[#6fd433]' : 'text-white/50 hover:text-white/80'
               }`}
             >
               <div className="relative">
@@ -97,7 +97,7 @@ export default function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className={`text-[9px] font-medium max-[380px]:hidden ${active ? 'text-[#60a5fa]' : 'text-white/50'}`}>
+              <span className={`text-[9px] font-medium max-[380px]:hidden ${active ? 'text-[#6fd433]' : 'text-white/50'}`}>
                 {label}
               </span>
             </Link>

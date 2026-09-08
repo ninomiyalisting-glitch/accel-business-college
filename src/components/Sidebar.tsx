@@ -117,7 +117,7 @@ export default function Sidebar({
   }, [channels, sortOrder, channelStats])
 
   return (
-    <div className="flex flex-col h-full bg-[#f4f6f9] text-gray-800 w-64 flex-shrink-0 border-r border-gray-200">
+    <div className="flex flex-col h-full bg-[#f7faf2] text-gray-800 w-64 flex-shrink-0 border-r border-gray-200">
       {/* ワークスペース名 */}
       <div className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-200">
         <Image src="/icon-192x192.png" alt="ロゴ" width={28} height={28} className="rounded-lg flex-shrink-0" />
@@ -128,23 +128,23 @@ export default function Sidebar({
 
       {/* ナビゲーション */}
       <div className="px-3 py-2 border-b border-gray-200 space-y-0.5">
-        <Link href="/dashboard" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/dashboard' ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+        <Link href="/dashboard" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/dashboard' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
           <LayoutDashboard size={15} /> ダッシュボード
         </Link>
-        <Link href="/chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/chat' ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+        <Link href="/chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/chat' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
           <MessageSquare size={15} /> チャット
         </Link>
-        <Link href="/videos" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/videos' ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+        <Link href="/videos" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/videos' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
           <Video size={15} /> 動画ライブラリ
         </Link>
-        <Link href="/events" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/events' || pathname.startsWith('/events/') ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+        <Link href="/events" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/events' || pathname.startsWith('/events/') ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
           <CalendarDays size={15} /> 日程調整
         </Link>
-        <Link href="/ai-chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/ai-chat' ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+        <Link href="/ai-chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/ai-chat' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
           <Sparkles size={15} /> AIアシスタント
         </Link>
         {slackUser?.slack_user_id === ADMIN_SLACK_USER_ID && (
-          <Link href="/admin" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/admin' ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'}`}>
+          <Link href="/admin" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/admin' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
             <Shield size={15} /> 管理画面
           </Link>
         )}
@@ -161,7 +161,7 @@ export default function Sidebar({
                 onClick={() => setShowSortMenu((v) => !v)}
                 className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors ${
                   sortOrder !== 'default'
-                    ? 'text-[#2563eb] bg-[#2563eb]/10'
+                    ? 'text-[#1f7a00] bg-[#279300]/10'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'
                 }`}
                 title="並び替え"
@@ -180,7 +180,7 @@ export default function Sidebar({
                         onClick={() => handleSortChange(order)}
                         className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                           sortOrder === order
-                            ? 'text-[#2563eb] font-semibold bg-[#2563eb]/5'
+                            ? 'text-[#1f7a00] font-semibold bg-[#279300]/5'
                             : 'text-gray-700 hover:bg-gray-50'
                         }`}
                       >
@@ -207,8 +207,8 @@ export default function Sidebar({
                     onClick={() => onSelectChannel(channel)}
                     className={`w-full flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg mx-1 transition-colors duration-100 text-left ${
                       isActive
-                        ? 'bg-[#2563eb] text-white font-semibold'
-                        : 'text-gray-600 hover:bg-[#e8f0fe] hover:text-[#2563eb]'
+                        ? 'bg-[#1f7a00] text-white font-semibold'
+                        : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'
                     }`}
                     style={{ width: 'calc(100% - 8px)' }}
                   >
@@ -217,7 +217,7 @@ export default function Sidebar({
                     {/* 投稿数バッジ（activity sort時のみ） */}
                     {sortOrder === 'activity' && stats?.count7d > 0 && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-[#2563eb]/10 text-[#2563eb]'
+                        isActive ? 'bg-white/20 text-white' : 'bg-[#1f7a00]/10 text-[#1f7a00]'
                       }`}>
                         {stats.count7d}
                       </span>
@@ -236,7 +236,7 @@ export default function Sidebar({
           onClick={onUserNameClick}
           className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-200 transition-colors group"
         >
-          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-[#2563eb]/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-[#279300]/10 flex items-center justify-center">
             {slackUser?.avatar_url ? (
               <Image
                 src={slackUser.avatar_url}
@@ -247,7 +247,7 @@ export default function Sidebar({
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
               />
             ) : (
-              <User size={14} className="text-[#2563eb]" />
+              <User size={14} className="text-[#1f7a00]" />
             )}
           </div>
           <div className="flex-1 min-w-0 text-left">

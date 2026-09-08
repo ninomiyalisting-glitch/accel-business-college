@@ -90,7 +90,7 @@ function MemberCard({ user, profile, stats }: { user: DBUser; profile?: MemberPr
         </div>
       )}
       {profile?.headline && (
-        <p className="text-[10px] text-[#2563eb] line-clamp-1 text-center leading-tight w-full italic">{profile.headline}</p>
+        <p className="text-[10px] text-[#1f7a00] line-clamp-1 text-center leading-tight w-full italic">{profile.headline}</p>
       )}
       {stats && stats.count > 0 && (
         <span className="text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full leading-tight">
@@ -100,7 +100,7 @@ function MemberCard({ user, profile, stats }: { user: DBUser; profile?: MemberPr
     </>
   )
 
-  const cls = "bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-col items-center gap-1.5 hover:shadow-md hover:border-[#2563eb]/20 transition-all active:scale-95 text-center"
+  const cls = "bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex flex-col items-center gap-1.5 hover:shadow-md hover:border-[#279300]/20 transition-all active:scale-95 text-center"
 
   return href ? (
     <Link href={href} className={cls}>{inner}</Link>
@@ -260,7 +260,7 @@ export default function MembersPage() {
   }, [filtered, sortOrder, statsMap, profileMap])
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -268,14 +268,14 @@ export default function MembersPage() {
             <span className="text-sm hidden sm:inline">ダッシュボード</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <Users size={17} className="text-[#2563eb]" />
+          <Users size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px]">メンバー一覧</h1>
           <div className="ml-auto flex items-center gap-2">
             {!loading && <span className="text-xs text-gray-400">{users.length}人</span>}
             {mySlackUserId && (
               <button
                 onClick={() => router.push('/members/edit')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-lg text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
               >
                 <Pencil size={12} />
                 プロフィールを編集
@@ -295,7 +295,7 @@ export default function MembersPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="名前・地域・所属・専門分野・自己紹介など..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
             />
           </div>
           <div className="relative">
@@ -303,7 +303,7 @@ export default function MembersPage() {
               onClick={() => setShowSortMenu((v) => !v)}
               className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border transition-colors ${
                 sortOrder !== 'activity'
-                  ? 'text-[#2563eb] bg-[#2563eb]/5 border-[#2563eb]/20'
+                  ? 'text-[#1f7a00] bg-[#279300]/5 border-[#279300]/20'
                   : 'text-gray-500 bg-white border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -321,7 +321,7 @@ export default function MembersPage() {
                       onClick={() => handleSortChange(order)}
                       className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                         sortOrder === order
-                          ? 'text-[#2563eb] font-semibold bg-[#2563eb]/5'
+                          ? 'text-[#1f7a00] font-semibold bg-[#279300]/5'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >

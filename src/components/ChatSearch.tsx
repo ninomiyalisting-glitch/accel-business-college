@@ -129,7 +129,7 @@ export default function ChatSearch({ channelMap, avatarMap, onClose, onSelectCha
         {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-[#2563eb]/30 border-t-[#2563eb] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
           </div>
         )}
 
@@ -159,11 +159,11 @@ export default function ChatSearch({ channelMap, avatarMap, onClose, onSelectCha
                         >
                           {/* Meta row */}
                           <div className="flex items-center gap-2 mb-1.5">
-                            <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-[#2563eb]/10 flex items-center justify-center">
+                            <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-[#279300]/10 flex items-center justify-center">
                               {avatar ? (
                                 <Image src={avatar} alt={result.user_name} width={24} height={24} className="w-full h-full object-cover" />
                               ) : (
-                                <User size={12} className="text-[#2563eb]" />
+                                <User size={12} className="text-[#1f7a00]" />
                               )}
                             </div>
                             <span className="text-xs font-semibold text-gray-700">{result.user_name}</span>

@@ -198,7 +198,7 @@ function renderContent(content: string, customEmojis?: CustomEmojis): React.Reac
       const uid = mentionMatch[1]
       const name = mentionMatch[2] || SLACK_USER_NAMES[uid] || uid
       return (
-        <span key={i} className="text-purple-700 bg-purple-50 rounded px-0.5 font-medium">
+        <span key={i} className="text-accel-active bg-accel-lightest rounded px-0.5 font-medium">
           @{name}
         </span>
       )
@@ -207,7 +207,7 @@ function renderContent(content: string, customEmojis?: CustomEmojis): React.Reac
     // Special mentions: <!channel>, <!here>, <!everyone>
     if (part === '<!channel>' || part === '<!here>' || part === '<!everyone>') {
       return (
-        <span key={i} className="text-purple-700 bg-purple-50 rounded px-0.5 font-medium">
+        <span key={i} className="text-accel-active bg-accel-lightest rounded px-0.5 font-medium">
           @{part.slice(2, -1)}
         </span>
       )
@@ -220,7 +220,7 @@ function renderContent(content: string, customEmojis?: CustomEmojis): React.Reac
       const text = linkMatch[2] || href
       return (
         <a key={i} href={href} target="_blank" rel="noopener noreferrer"
-           className="text-blue-600 hover:underline break-all">
+           className="text-accel-active hover:underline break-all">
           {text}
         </a>
       )
@@ -482,7 +482,7 @@ function ReactionUsersModal({
                     )}
                     <span className="flex-1 text-sm font-medium text-gray-800 truncate">{u}</span>
                     {isMe && (
-                      <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full">あなた</span>
+                      <span className="text-[10px] text-accel-active bg-accel-lightest px-1.5 py-0.5 rounded-full">あなた</span>
                     )}
                   </li>
                 )
@@ -498,7 +498,7 @@ function ReactionUsersModal({
               className={`w-full py-2 rounded-lg font-medium text-sm transition-colors ${
                 myReacted
                   ? 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-100'
-                  : 'bg-purple-700 text-white hover:bg-purple-800'
+                  : 'bg-accel-active text-white hover:bg-accel-text'
               }`}
             >
               {myReacted ? 'リアクションを取り消す' : 'リアクションする'}
@@ -565,7 +565,7 @@ function ReactionChip({
           onTouchMove={handleTouchEnd}
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm transition-colors ${
             myReacted
-              ? 'bg-purple-100 border border-purple-300 hover:bg-purple-200'
+              ? 'bg-accel-lightest border border-accel-light hover:bg-accel-light'
               : 'bg-gray-100 hover:bg-gray-200 border border-transparent'
           }`}
           title={`${reaction} のリアクション詳細を表示`}
@@ -771,13 +771,13 @@ function MessageBubble({
   }
 
   return (
-    <div className={`w-full px-2 md:px-3 py-2 ${isContinuation ? 'mt-0' : 'mt-2'} ${isReplying ? 'bg-purple-50/60' : 'hover:bg-gray-50'} ${isReply ? 'pl-3 md:pl-4' : ''} relative`}>
+    <div className={`w-full px-2 md:px-3 py-2 ${isContinuation ? 'mt-0' : 'mt-2'} ${isReplying ? 'bg-accel-lightest/60' : 'hover:bg-gray-50'} ${isReply ? 'pl-3 md:pl-4' : ''} relative`}>
       {/* Row 1: アバター・名前・時刻 */}
       {!isContinuation && (
         <div className="flex items-center gap-2 mb-1">
           <button
             onClick={() => onMemberClick?.(memberInfo)}
-            className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#2563eb]/40 transition-all"
+            className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#279300]/40 transition-all"
             title={displayName}
           >
             {avatarUrl && !avatarError ? (
@@ -797,7 +797,7 @@ function MessageBubble({
           </button>
           <button
             onClick={() => onMemberClick?.(memberInfo)}
-            className={`text-sm font-bold hover:underline focus:outline-none ${isOwn ? 'text-purple-700' : 'text-gray-900'}`}
+            className={`text-sm font-bold hover:underline focus:outline-none ${isOwn ? 'text-accel-active' : 'text-gray-900'}`}
           >
             {displayName}
           </button>
@@ -816,14 +816,14 @@ function MessageBubble({
             onChange={(e) => setEditContent(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false) }}
             rows={Math.max(2, editContent.split('\n').length)}
-            className="w-full text-[15px] text-gray-800 border border-purple-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+            className="w-full text-[15px] text-gray-800 border border-accel-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accel-light resize-none"
             autoFocus
           />
           <div className="flex gap-2 mt-1.5 text-sm">
             <button
               onClick={handleSaveEdit}
               disabled={saving || !editContent.trim()}
-              className="px-3 py-1 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors disabled:opacity-50"
+              className="px-3 py-1 bg-accel-active text-white rounded-lg hover:bg-accel-text transition-colors disabled:opacity-50"
             >
               {saving ? '保存中...' : '保存'}
             </button>
@@ -894,7 +894,7 @@ function MessageBubble({
           {!isReply && onReply && (
             <button
               onClick={onReply}
-              className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 bg-accel-active hover:bg-accel-text text-white rounded-lg text-xs font-medium transition-colors"
               title="スレッドで返信"
             >
               <span aria-hidden>💬</span>
@@ -949,7 +949,7 @@ function MessageBubble({
                 )
               })}
             </div>
-            <span className="text-xs font-bold text-blue-600 group-hover/thread:underline">
+            <span className="text-xs font-bold text-accel-active group-hover/thread:underline">
               {replyCount}件の返信
             </span>
             <span className="text-[11px] text-gray-500">
@@ -959,7 +959,7 @@ function MessageBubble({
           </button>
 
           {expanded && (
-            <div className="mt-2 ml-1 border-l-2 border-purple-200 bg-gray-50/60 rounded-r-lg py-2">
+            <div className="mt-2 ml-1 border-l-2 border-accel-light bg-gray-50/60 rounded-r-lg py-2">
               {threadReplies!.map((reply, idx) => {
                 const prevReply = threadReplies![idx - 1]
                 const isContReply =
@@ -1190,7 +1190,7 @@ export default function MessageList({ messages, currentUserName, currentSlackUse
       {newCount > 0 && (
         <button
           onClick={handleScrollToNew}
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-purple-700 hover:bg-purple-800 text-white text-sm font-medium rounded-full shadow-lg transition-colors z-10"
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-2 bg-accel-active hover:bg-accel-text text-white text-sm font-medium rounded-full shadow-lg transition-colors z-10"
         >
           ↓ {newCount}件の新着メッセージ
         </button>

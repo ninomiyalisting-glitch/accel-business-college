@@ -29,8 +29,8 @@ function tsKey(ts: string | null | undefined): string {
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center h-full bg-[#f4f6f9]">
-        <div className="w-12 h-12 border-4 border-[#2563eb]/30 border-t-[#2563eb] rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-full bg-[#f7faf2]">
+        <div className="w-12 h-12 border-4 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
       </div>
     }>
       <ChatContent />
@@ -635,9 +635,9 @@ function ChatContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#f4f6f9]">
+      <div className="flex items-center justify-center h-full bg-[#f7faf2]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#2563eb]/30 border-t-[#2563eb] rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin mx-auto mb-4" />
           <div className="text-gray-500 text-sm">読み込み中...</div>
         </div>
       </div>
@@ -645,7 +645,7 @@ function ChatContent() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f4f6f9]">
+    <div className="flex h-full overflow-hidden bg-[#f7faf2]">
       {showUserNameDialog && (
         <UserNameDialog
           onSubmit={handleSetUserName}
@@ -685,7 +685,7 @@ function ChatContent() {
               <p className="text-gray-700 font-medium">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-[#2563eb] text-white rounded-lg hover:bg-[#1d4ed8] transition-colors text-sm"
+                className="mt-4 px-4 py-2 bg-[#1f7a00] text-white rounded-lg hover:bg-[#145200] transition-colors text-sm"
               >
                 再読み込み
               </button>

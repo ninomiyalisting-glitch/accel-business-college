@@ -24,7 +24,7 @@ function MessageBubble({ msg, isStreaming }: { msg: Message; isStreaming?: boole
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
         isUser
-          ? 'bg-[#2563eb] text-white rounded-tr-sm'
+          ? 'bg-[#1f7a00] text-white rounded-tr-sm'
           : 'bg-white border border-gray-200 shadow-sm text-gray-800 rounded-tl-sm'
       }`}>
         {msg.content ? (
@@ -141,7 +141,7 @@ export default function AiChatPage() {
   const isCurrentlyStreaming = streaming && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === ''
 
   return (
-    <div className="flex flex-col h-full bg-[#f4f6f9]">
+    <div className="flex flex-col h-full bg-[#f7faf2]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 z-10 flex-shrink-0">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
@@ -178,7 +178,7 @@ export default function AiChatPage() {
                   <button
                     key={s}
                     onClick={() => sendMessage(s)}
-                    className="text-left text-sm text-gray-600 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#2563eb]/30 hover:bg-blue-50/50 hover:text-[#2563eb] transition-all shadow-sm"
+                    className="text-left text-sm text-gray-600 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-[#279300]/30 hover:bg-accel-lightest/50 hover:text-[#1f7a00] transition-all shadow-sm"
                   >
                     {s}
                   </button>
@@ -213,7 +213,7 @@ export default function AiChatPage() {
                 placeholder="メッセージを入力… (Enterで送信)"
                 rows={1}
                 disabled={streaming}
-                className="w-full text-sm text-gray-800 border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] resize-none disabled:opacity-60 leading-relaxed bg-white"
+                className="w-full text-sm text-gray-800 border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] resize-none disabled:opacity-60 leading-relaxed bg-white"
                 style={{ minHeight: 46, maxHeight: 160 }}
                 onInput={(e) => {
                   const t = e.currentTarget
@@ -225,7 +225,7 @@ export default function AiChatPage() {
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || streaming}
-              className="w-11 h-11 rounded-2xl bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors flex-shrink-0"
+              className="w-11 h-11 rounded-2xl bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors flex-shrink-0"
             >
               {streaming ? (
                 <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />

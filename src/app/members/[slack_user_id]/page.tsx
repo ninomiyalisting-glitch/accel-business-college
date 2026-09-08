@@ -118,8 +118,8 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
-        <div className="w-8 h-8 border-3 border-[#2563eb]/30 border-t-[#2563eb] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
       </div>
     )
   }
@@ -137,7 +137,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
@@ -150,7 +150,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
           {isOwnProfile && (
             <Link
               href="/members/edit"
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-lg text-xs font-medium transition-colors"
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
             >
               <Pencil size={12} />
               プロフィールを編集
@@ -162,7 +162,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
       <main className="max-w-2xl mx-auto px-4 pt-6 pb-bottom-nav space-y-4">
         {/* Hero card */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="h-20 bg-gradient-to-r from-[#2563eb]/20 via-[#2563eb]/10 to-transparent" />
+          <div className="h-20 bg-gradient-to-r from-[#279300]/20 via-[#279300]/10 to-transparent" />
           <div className="px-6 pb-6 -mt-10">
             <div className="flex items-end justify-between mb-4">
               {user.avatar_url && !avatarError ? (
@@ -183,7 +183,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
               )}
               <button
                 onClick={handleSlackDM}
-                className="flex items-center gap-1.5 px-4 py-2 bg-[#4A154B] hover:bg-[#3e1140] text-white rounded-xl text-sm font-medium transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 bg-slack-brand hover:bg-slack-brandDark text-white rounded-xl text-sm font-medium transition-colors"
               >
                 <MessageCircle size={14} />
                 Slackでメッセージ
@@ -238,11 +238,11 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
         )}
 
         {isOwnProfile && !profile && (
-          <div className="bg-white rounded-2xl border border-dashed border-[#2563eb]/30 p-8 text-center">
+          <div className="bg-white rounded-2xl border border-dashed border-[#279300]/30 p-8 text-center">
             <p className="text-gray-500 text-sm mb-4">プロフィールを充実させてメンバーに自己紹介しましょう</p>
             <Link
               href="/members/edit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-xl text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-xl text-sm font-medium transition-colors"
             >
               <Pencil size={14} />
               プロフィールを入力する
@@ -253,7 +253,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
         {/* Recent posts */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-            <MessageSquare size={15} className="text-[#2563eb]" />
+            <MessageSquare size={15} className="text-[#1f7a00]" />
             <span className="font-semibold text-gray-900 text-sm">最近の投稿</span>
             {recentMessages.length > 0 && (
               <span className="ml-auto text-xs text-gray-400">{recentMessages.length}件</span>

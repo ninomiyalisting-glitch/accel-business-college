@@ -411,18 +411,18 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#2563eb]/30 border-t-[#2563eb] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
       </div>
     )
   }
 
   if (!event) {
     return (
-      <div className="min-h-screen bg-[#f4f6f9] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
         <div className="text-center text-gray-400">
           <p>イベントが見つかりません</p>
-          <Link href="/events" className="mt-4 inline-block text-[#2563eb] text-sm hover:underline">一覧に戻る</Link>
+          <Link href="/events" className="mt-4 inline-block text-[#1f7a00] text-sm hover:underline">一覧に戻る</Link>
         </div>
       </div>
     )
@@ -431,7 +431,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const isPast = event.deadline ? new Date(event.deadline) < new Date() : false
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -492,7 +492,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <CheckCircle2 size={11} /> 日程確定
               </span>
             ) : (
-              <span className="text-xs px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full font-medium">回答受付中</span>
+              <span className="text-xs px-2.5 py-1 bg-accel-lightest text-accel-active rounded-full font-medium">回答受付中</span>
             )}
             {isPast && !event.confirmed_date && (
               <span className="text-xs px-2.5 py-1 bg-red-50 text-red-500 rounded-full font-medium">締切済み</span>
@@ -524,7 +524,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               {canDelete && (
                 <button
                   onClick={() => setShowDateEditor(true)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#2563eb] border border-[#2563eb]/30 rounded-lg hover:bg-blue-50 transition-colors"
+                  className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-[#1f7a00] border border-[#279300]/30 rounded-lg hover:bg-accel-lightest transition-colors"
                 >
                   <CalendarCog size={12} /> 候補日時を編集
                 </button>
@@ -628,9 +628,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   value={myName}
                   onChange={(e) => setMyName(e.target.value)}
                   placeholder="名前を入力"
-                  className="flex-1 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="flex-1 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                 />
-                <button onClick={() => setNameEditing(false)} className="text-xs text-[#2563eb] px-3 py-2.5 border border-[#2563eb]/30 rounded-xl hover:bg-blue-50 transition-colors">
+                <button onClick={() => setNameEditing(false)} className="text-xs text-[#1f7a00] px-3 py-2.5 border border-[#279300]/30 rounded-xl hover:bg-accel-lightest transition-colors">
                   確定
                 </button>
               </div>
@@ -671,7 +671,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           <button
             onClick={handleSubmit}
             disabled={saving || !myName.trim()}
-            className="w-full py-3 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             {saving && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
             {saving ? '保存中...' : '回答を送信する'}
@@ -704,7 +704,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         value={entry.name}
                         onChange={(e) => updateProxyName(i, e.target.value)}
                         placeholder={`代理回答者 ${i + 1} の名前`}
-                        className="flex-1 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] bg-white"
+                        className="flex-1 text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white"
                       />
                       {proxyEntries.length > 1 && (
                         <button
@@ -883,7 +883,7 @@ function DateEditorModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <CalendarCog size={16} className="text-[#2563eb]" />
+            <CalendarCog size={16} className="text-[#1f7a00]" />
             <h3 className="font-semibold text-gray-900 text-sm">候補日時を編集</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -917,7 +917,7 @@ function DateEditorModal({
                 className="w-20 text-sm text-gray-800 border border-gray-200 rounded-lg px-2 py-1.5 bg-white disabled:bg-gray-100"
               />
               {d._deleted ? (
-                <button onClick={() => undo(i)} className="text-xs text-blue-500 hover:text-blue-700 px-2">戻す</button>
+                <button onClick={() => undo(i)} className="text-xs text-accel-active hover:text-accel-active px-2">戻す</button>
               ) : (
                 <button onClick={() => remove(i)} className="text-gray-300 hover:text-red-400 transition-colors">
                   <Trash2 size={15} />
@@ -939,7 +939,7 @@ function DateEditorModal({
           <button
             onClick={save}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
             保存する
@@ -1025,7 +1025,7 @@ function CoverEditorModal({
     <button
       onClick={() => setTab(key)}
       className={`flex-1 py-2 text-xs font-medium border-b-2 transition-colors ${
-        tab === key ? 'border-[#2563eb] text-[#2563eb]' : 'border-transparent text-gray-500 hover:text-gray-700'
+        tab === key ? 'border-[#279300] text-[#1f7a00]' : 'border-transparent text-gray-500 hover:text-gray-700'
       }`}
     >
       {label}
@@ -1037,7 +1037,7 @@ function CoverEditorModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <ImageIcon size={16} className="text-[#2563eb]" />
+            <ImageIcon size={16} className="text-[#1f7a00]" />
             <h3 className="font-semibold text-gray-900 text-sm">カバー画像を変更</h3>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
@@ -1072,7 +1072,7 @@ function CoverEditorModal({
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="https://... または下のボタンから"
-                  className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                 />
               </div>
               <button
@@ -1104,9 +1104,9 @@ function CoverEditorModal({
               <button
                 onClick={aiFetch}
                 disabled={fetching}
-                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-[#2563eb] border border-[#2563eb]/30 rounded-xl hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-[#1f7a00] border border-[#279300]/30 rounded-xl hover:bg-accel-lightest disabled:opacity-50 transition-colors"
               >
-                {fetching ? <div className="w-4 h-4 border-2 border-[#2563eb]/40 border-t-[#2563eb] rounded-full animate-spin" /> : <Sparkles size={14} />}
+                {fetching ? <div className="w-4 h-4 border-2 border-[#279300]/40 border-t-[#279300] rounded-full animate-spin" /> : <Sparkles size={14} />}
                 {aiInfo ? '別の画像を生成' : 'AI生成'}
               </button>
               {aiInfo && (
@@ -1133,7 +1133,7 @@ function CoverEditorModal({
           <button
             onClick={save}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Save size={14} />}
             保存する

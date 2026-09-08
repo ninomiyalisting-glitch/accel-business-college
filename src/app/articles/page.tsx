@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, BookOpen, Plus, Search, User, X, Tag, ChevronDown } from 'lucide-react'
+import { ArrowLeft, BookOpen, Plus, Search, User, X, Tag, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -14,7 +14,7 @@ const ADMIN_ID = 'U058FM3EFE0'
 const UNCATEGORIZED_KEY = '__uncategorized__'
 
 const PRESET_COLORS = [
-  '#2563eb', '#10b981', '#f59e0b', '#ef4444',
+  '#279300', '#10b981', '#f59e0b', '#ef4444',
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
   '#84cc16', '#6b7280',
 ]
@@ -22,6 +22,7 @@ const PRESET_COLORS = [
 interface Category {
   id: string
   name: string
+  description: string | null
   color: string
   parent_id: string | null
 }
@@ -79,6 +80,14 @@ function ArticlesContent() {
   const [newCatParentId, setNewCatParentId] = useState('')
   const [savingCat, setSavingCat] = useState(false)
 
+  // edit modal state
+  const [editingCat, setEditingCat] = useState<Category | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDesc, setEditDesc] = useState('')
+  const [editColor, setEditColor] = useState(PRESET_COLORS[0])
+  const [editParentId, setEditParentId] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SLACK_USER_KEY)
@@ -94,10 +103,10 @@ function ArticlesContent() {
     const [articlesRes, catsRes] = await Promise.all([
       supabase
         .from('articles')
-        .select('id, title, category_id, author_name, author_avatar, cover_image_url, created_at, article_categories(id, name, color, parent_id)')
+        .select('id, title, category_id, author_name, author_avatar, cover_image_url, created_at, article_categories(id, name, description, color, parent_id)')
         .eq('published', true)
         .order('created_at', { ascending: false }),
-      supabase.from('article_categories').select('id, name, color, parent_id').order('name'),
+      supabase.from('article_categories').select('id, name, description, color, parent_id').order('name'),
     ])
     setArticles((articlesRes.data ?? []) as unknown as Article[])
     setCategories((catsRes.data ?? []) as Category[])
@@ -125,7 +134,7 @@ function ArticlesContent() {
         color: newCatColor,
         parent_id: newCatParentId || null,
       })
-      .select('id, name, color, parent_id')
+      .select('id, name, description, color, parent_id')
       .single()
     setSavingCat(false)
     if (error || !data) { alert('作成に失敗しました'); return }
@@ -137,10 +146,82 @@ function ArticlesContent() {
     setNewCatParentId('')
   }
 
+  const openEditModal = (cat: Category) => {
+    setEditingCat(cat)
+    setEditName(cat.name)
+    setEditDesc(cat.description ?? '')
+    setEditColor(cat.color || PRESET_COLORS[0])
+    setEditParentId(cat.parent_id ?? '')
+  }
+
+  const handleUpdateCategory = async () => {
+    if (!editingCat || !editName.trim()) return
+    setSavingEdit(true)
+    const { data, error } = await supabase
+      .from('article_categories')
+      .update({
+        name: editName.trim(),
+        description: editDesc.trim() || null,
+        color: editColor,
+        parent_id: editParentId || null,
+      })
+      .eq('id', editingCat.id)
+      .select('id, name, description, color, parent_id')
+      .single()
+    setSavingEdit(false)
+    if (error || !data) { alert('更新に失敗しました'); return }
+    const updated = data as Category
+    setCategories((prev) =>
+      prev
+        .map((c) => (c.id === updated.id ? updated : c))
+        .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+    )
+    // 記事に埋め込まれたカテゴリー情報も同期
+    setArticles((prev) =>
+      prev.map((a) => (a.category_id === updated.id ? { ...a, article_categories: updated } : a))
+    )
+    setEditingCat(null)
+  }
+
   const handleDeleteCategory = async (cat: Category) => {
-    if (!confirm(`カテゴリー「${cat.name}」を削除しますか？\n（このカテゴリーの記事は「未分類」になります）`)) return
-    await supabase.from('article_categories').delete().eq('id', cat.id)
-    setCategories((prev) => prev.filter((c) => c.id !== cat.id))
+    // 実際に紐付いている記事数を取得（非公開記事も含む）
+    const { count } = await supabase
+      .from('articles')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_id', cat.id)
+    const articleCount = count ?? 0
+    const childCount = categories.filter((c) => c.parent_id === cat.id).length
+
+    let message = `カテゴリー「${cat.name}」を削除しますか？\n\nこの操作は取り消せません。`
+    if (articleCount > 0) {
+      message += `\n\n⚠️ このカテゴリーには ${articleCount} 件の記事があります。\n記事は削除されず、「未分類」に移動します。`
+    }
+    if (childCount > 0) {
+      message += `\n\n⚠️ ${childCount} 件の小カテゴリーがあります。\n小カテゴリーは削除されず、大カテゴリーに昇格します。`
+    }
+    if (!confirm(message)) return
+
+    // 記事の category_id を明示的に NULL にしてから削除（記事が消えないことを保証）
+    if (articleCount > 0) {
+      const { error: unlinkError } = await supabase
+        .from('articles')
+        .update({ category_id: null })
+        .eq('category_id', cat.id)
+      if (unlinkError) { alert('記事の紐付け解除に失敗しました'); return }
+    }
+
+    const { error } = await supabase.from('article_categories').delete().eq('id', cat.id)
+    if (error) { alert('削除に失敗しました'); return }
+
+    setCategories((prev) =>
+      prev
+        .filter((c) => c.id !== cat.id)
+        .map((c) => (c.parent_id === cat.id ? { ...c, parent_id: null } : c))
+    )
+    setArticles((prev) =>
+      prev.map((a) => (a.category_id === cat.id ? { ...a, category_id: null, article_categories: null } : a))
+    )
+    if (editingCat?.id === cat.id) setEditingCat(null)
   }
 
   const toggleCollapsed = (key: string) => {
@@ -157,6 +238,8 @@ function ArticlesContent() {
   // 親カテゴリー > 小カテゴリー > 記事 の階層構造を構築
   const sections = useMemo<ParentSection[]>(() => {
     const q = query.trim().toLowerCase()
+    // 管理者は記事が0件のカテゴリーも表示（編集・削除できるようにするため）
+    const showEmpty = isAdmin && !q
     const filtered = q
       ? articles.filter((a) => a.title.toLowerCase().includes(q) || a.author_name.toLowerCase().includes(q))
       : articles
@@ -192,10 +275,10 @@ function ArticlesContent() {
       const directArticles = catMap.get(parent.id) ?? []
       const children: ChildSection[] = (childrenByParent.get(parent.id) ?? [])
         .map((c) => ({ category: c, articles: catMap.get(c.id) ?? [] }))
-        .filter((cs) => cs.articles.length > 0)
+        .filter((cs) => cs.articles.length > 0 || showEmpty)
       const totalCount =
         directArticles.length + children.reduce((s, cs) => s + cs.articles.length, 0)
-      if (totalCount > 0) {
+      if (totalCount > 0 || showEmpty) {
         result.push({
           key: parent.id,
           label: parent.name,
@@ -219,12 +302,11 @@ function ArticlesContent() {
       })
     }
     return result
-  }, [articles, categories, query])
+  }, [articles, categories, query, isAdmin])
 
-  const totalCount = useMemo(() => sections.reduce((s, sec) => s + sec.totalCount, 0), [sections])
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -232,7 +314,7 @@ function ArticlesContent() {
             <span className="text-sm hidden sm:inline">ダッシュボード</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <BookOpen size={17} className="text-[#2563eb]" />
+          <BookOpen size={17} className="text-[#1f7a00]" />
           <h1 className="font-bold text-gray-900 text-[15px] flex-1">ナレッジベース</h1>
           {myName && (
             <div className="flex items-center gap-2">
@@ -244,7 +326,7 @@ function ArticlesContent() {
               </button>
               <Link
                 href="/articles/new"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white rounded-lg text-xs font-medium transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
               >
                 <Plus size={13} /> 記事を書く
               </Link>
@@ -262,7 +344,7 @@ function ArticlesContent() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="タイトル・著者で検索..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
           />
         </div>
 
@@ -280,12 +362,12 @@ function ArticlesContent() {
               </div>
             ))}
           </div>
-        ) : totalCount === 0 ? (
+        ) : sections.length === 0 ? (
           <div className="text-center py-20 text-gray-400">
             <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">{query ? '条件に一致する記事がありません' : 'まだ記事がありません'}</p>
             {myName && !query && (
-              <Link href="/articles/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm font-medium hover:bg-[#1d4ed8] transition-colors">
+              <Link href="/articles/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors">
                 <Plus size={15} /> 最初の記事を書く
               </Link>
             )}
@@ -298,9 +380,9 @@ function ArticlesContent() {
               return (
                 <div key={section.key} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   {/* Parent header */}
-                  <button
+                  <div
                     onClick={() => toggleCollapsed(section.key)}
-                    className="w-full flex items-center gap-2.5 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-100"
+                    className="w-full flex items-center gap-2.5 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-100 cursor-pointer"
                   >
                     {section.color ? (
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
@@ -312,20 +394,33 @@ function ArticlesContent() {
                       <span className="ml-1.5 font-normal text-gray-400 text-xs">({section.totalCount})</span>
                     </span>
                     {isAdmin && !isUncategorized && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const cat = categories.find((c) => c.id === section.key)
-                          if (cat) handleDeleteCategory(cat)
-                        }}
-                        className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 hover:bg-red-100 hover:text-red-500 text-gray-400 transition-colors flex-shrink-0"
-                        title="カテゴリーを削除"
-                      >
-                        <X size={10} />
-                      </button>
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const cat = categories.find((c) => c.id === section.key)
+                            if (cat) openEditModal(cat)
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-accel-lightest hover:text-[#1f7a00] text-gray-500 transition-colors flex-shrink-0"
+                          title="カテゴリーを編集"
+                        >
+                          <Pencil size={11} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const cat = categories.find((c) => c.id === section.key)
+                            if (cat) handleDeleteCategory(cat)
+                          }}
+                          className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-red-100 hover:text-red-500 text-gray-500 transition-colors flex-shrink-0"
+                          title="カテゴリーを削除"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </>
                     )}
                     <ChevronDown size={15} className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
-                  </button>
+                  </div>
 
                   {/* Body */}
                   {!isCollapsed && (
@@ -336,9 +431,9 @@ function ArticlesContent() {
                         const childCollapsed = collapsed.has(childKey)
                         return (
                           <div key={cs.category.id} className="border-t border-gray-100">
-                            <button
+                            <div
                               onClick={() => toggleCollapsed(childKey)}
-                              className="w-full flex items-center gap-2 pl-6 pr-4 py-2.5 bg-white hover:bg-gray-50 transition-colors"
+                              className="w-full flex items-center gap-2 pl-6 pr-4 py-2.5 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cs.category.color }} />
                               <span className="font-medium text-gray-700 text-[13px] flex-1 text-left">
@@ -346,16 +441,30 @@ function ArticlesContent() {
                                 <span className="ml-1.5 font-normal text-gray-400 text-xs">({cs.articles.length})</span>
                               </span>
                               {isAdmin && (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cs.category) }}
-                                  className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 text-gray-400 transition-colors flex-shrink-0"
-                                  title="小カテゴリーを削除"
-                                >
-                                  <X size={10} />
-                                </button>
+                                <>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); openEditModal(cs.category) }}
+                                    className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 hover:bg-accel-lightest hover:text-[#1f7a00] text-gray-400 transition-colors flex-shrink-0"
+                                    title="小カテゴリーを編集"
+                                  >
+                                    <Pencil size={11} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cs.category) }}
+                                    className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 text-gray-400 transition-colors flex-shrink-0"
+                                    title="小カテゴリーを削除"
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </>
                               )}
                               <ChevronDown size={14} className={`text-gray-400 flex-shrink-0 transition-transform duration-200 ${childCollapsed ? '-rotate-90' : ''}`} />
-                            </button>
+                            </div>
+                            {!childCollapsed && cs.articles.length === 0 && (
+                              <div className="pl-9 pr-4 py-3 text-xs text-gray-400 bg-gray-50/50 border-t border-gray-100">
+                                記事はまだありません
+                              </div>
+                            )}
                             {!childCollapsed && (
                               <div className="bg-gray-50/50">
                                 {cs.articles.map((article, i) => (
@@ -383,6 +492,12 @@ function ArticlesContent() {
                           </div>
                         )
                       })}
+
+                      {section.totalCount === 0 && (
+                        <div className="px-4 py-4 text-center text-xs text-gray-400 border-t border-gray-100">
+                          記事はまだありません
+                        </div>
+                      )}
 
                       {/* 親カテゴリー直下の記事 (小カテゴリーに属さない記事) */}
                       {section.directArticles.map((article, i) => (
@@ -433,7 +548,7 @@ function ArticlesContent() {
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
                   placeholder="例：マーケティング"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                   autoFocus
                   onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
                 />
@@ -444,7 +559,7 @@ function ArticlesContent() {
                 <select
                   value={newCatParentId}
                   onChange={(e) => setNewCatParentId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb] bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white"
                 >
                   <option value="">なし（大カテゴリーとして作成）</option>
                   {categories.filter((c) => !c.parent_id).map((c) => (
@@ -461,7 +576,7 @@ function ArticlesContent() {
                   value={newCatDesc}
                   onChange={(e) => setNewCatDesc(e.target.value)}
                   placeholder="このカテゴリーの説明"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/20 focus:border-[#2563eb]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                 />
               </div>
 
@@ -511,7 +626,7 @@ function ArticlesContent() {
               <button
                 onClick={handleCreateCategory}
                 disabled={savingCat || !newCatName.trim()}
-                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#2563eb] hover:bg-[#1d4ed8] rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-xl transition-colors disabled:opacity-50"
               >
                 {savingCat ? '作成中...' : '作成する'}
               </button>
@@ -519,6 +634,129 @@ function ArticlesContent() {
           </div>
         </div>
       )}
+
+      {/* Category edit modal */}
+      {editingCat && (() => {
+        const hasChildren = categories.some((c) => c.parent_id === editingCat.id)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-bold text-gray-900 text-base">カテゴリーを編集</h2>
+                <button onClick={() => setEditingCat(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">カテゴリー名 *</label>
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    placeholder="例：マーケティング"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                    autoFocus
+                    onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory()}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">親カテゴリー</label>
+                  <select
+                    value={editParentId}
+                    onChange={(e) => setEditParentId(e.target.value)}
+                    disabled={hasChildren}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="">なし（大カテゴリー）</option>
+                    {categories
+                      .filter((c) => c.id !== editingCat.id && !c.parent_id)
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    {hasChildren
+                      ? 'このカテゴリーには小カテゴリーがあるため、親は変更できません'
+                      : '親を指定すると小カテゴリーになります'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">説明（任意）</label>
+                  <input
+                    type="text"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    placeholder="このカテゴリーの説明"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-2">カラー</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setEditColor(color)}
+                        className={`w-7 h-7 rounded-full transition-transform ${editColor === color ? 'scale-125 ring-2 ring-offset-2 ring-gray-400' : 'hover:scale-110'}`}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-gray-400">カスタム:</span>
+                    <input
+                      type="color"
+                      value={editColor}
+                      onChange={(e) => setEditColor(e.target.value)}
+                      className="w-8 h-7 rounded border border-gray-200 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500 font-mono">{editColor}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-400">プレビュー:</span>
+                  <span
+                    className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: editColor }}
+                  >
+                    {editName || 'カテゴリー名'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                  onClick={() => setEditingCat(null)}
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={handleUpdateCategory}
+                  disabled={savingEdit || !editName.trim()}
+                  className="flex-1 py-2.5 text-sm font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-xl transition-colors disabled:opacity-50"
+                >
+                  {savingEdit ? '保存中...' : '保存する'}
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleDeleteCategory(editingCat)}
+                className="w-full mt-3 py-2.5 flex items-center justify-center gap-1.5 text-sm font-medium text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+              >
+                <Trash2 size={14} /> このカテゴリーを削除
+              </button>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

@@ -170,7 +170,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f9]">
+    <div className="min-h-screen bg-[#f7faf2]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -186,11 +186,11 @@ export default function DashboardPage() {
                   alt={userName}
                   width={32}
                   height={32}
-                  className="rounded-full ring-2 ring-transparent hover:ring-[#2563eb]/30 transition-all"
+                  className="rounded-full ring-2 ring-transparent hover:ring-[#279300]/30 transition-all"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#2563eb]/10 flex items-center justify-center hover:bg-[#2563eb]/20 transition-colors">
-                  <span className="text-[#2563eb] text-sm font-medium">{userName?.[0] ?? '?'}</span>
+                <div className="w-8 h-8 rounded-full bg-[#279300]/10 flex items-center justify-center hover:bg-[#279300]/20 transition-colors">
+                  <span className="text-[#1f7a00] text-sm font-medium">{userName?.[0] ?? '?'}</span>
                 </div>
               )}
             </Link>
@@ -219,10 +219,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <CalendarDays size={16} className="text-[#2563eb]" />
+                <CalendarDays size={16} className="text-[#1f7a00]" />
                 日程調整
               </h2>
-              <Link href="/events" className="text-[#2563eb] text-sm hover:underline flex items-center gap-1">
+              <Link href="/events" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
                 すべて見る <ArrowRight size={13} />
               </Link>
             </div>
@@ -254,7 +254,7 @@ export default function DashboardPage() {
                             ) : isPast ? (
                               <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full font-medium flex-shrink-0">締切済み</span>
                             ) : (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium flex-shrink-0">受付中</span>
+                              <span className="text-[10px] px-1.5 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium flex-shrink-0">受付中</span>
                             )}
                             <span className="font-medium text-gray-800 text-sm truncate">{ev.title}</span>
                           </div>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <Link
             href="/chat"
-            className="bg-[#2563eb] text-white rounded-2xl p-5 flex items-center gap-3 hover:bg-[#1d4ed8] transition-colors shadow-sm"
+            className="bg-[#1f7a00] text-white rounded-2xl p-5 flex items-center gap-3 hover:bg-[#145200] transition-colors shadow-sm"
           >
             <MessageSquare size={24} />
             <div>
@@ -318,7 +318,7 @@ export default function DashboardPage() {
             href="/videos"
             className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
           >
-            <Video size={24} className="text-[#2563eb]" />
+            <Video size={24} className="text-[#1f7a00]" />
             <div>
               <div className="font-semibold">動画ライブラリ</div>
               <div className="text-gray-400 text-sm">勉強会を視聴する</div>
@@ -329,7 +329,7 @@ export default function DashboardPage() {
             href="/gallery"
             className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
           >
-            <ImageIcon size={24} className="text-[#2563eb]" />
+            <ImageIcon size={24} className="text-[#1f7a00]" />
             <div>
               <div className="font-semibold">ギャラリー</div>
               <div className="text-gray-400 text-sm">写真をシェア</div>
@@ -340,10 +340,10 @@ export default function DashboardPage() {
             href="/members"
             className="bg-white rounded-2xl p-5 flex items-center gap-3 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
           >
-            <Users size={24} className="text-[#2563eb]" />
+            <Users size={24} className="text-[#1f7a00]" />
             <div>
               <div className="font-semibold text-gray-800">メンバー数</div>
-              <div className="text-2xl font-bold text-[#2563eb]">
+              <div className="text-2xl font-bold text-[#1f7a00]">
                 {loading ? '...' : memberCount ?? '-'}
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function DashboardPage() {
             href="/events"
             className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
           >
-            <CalendarDays size={24} className="text-[#2563eb]" />
+            <CalendarDays size={24} className="text-[#1f7a00]" />
             <div>
               <div className="font-semibold">日程調整</div>
               <div className="text-gray-400 text-sm">イベント確認</div>
@@ -362,7 +362,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/ai-chat"
-            className="bg-gradient-to-br from-violet-500 to-purple-600 text-white rounded-2xl p-5 flex items-center gap-3 hover:from-violet-600 hover:to-purple-700 transition-colors shadow-sm"
+            className="bg-gradient-to-br from-accel-primary to-accel-primary text-white rounded-2xl p-5 flex items-center gap-3 hover:from-accel-primary hover:to-accel-active transition-colors shadow-sm"
           >
             <Sparkles size={24} />
             <div>
@@ -378,10 +378,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <MessageSquare size={16} className="text-[#2563eb]" />
+                <MessageSquare size={16} className="text-[#1f7a00]" />
                 最新の投稿
               </h2>
-              <Link href="/chat" className="text-[#2563eb] text-sm hover:underline flex items-center gap-1">
+              <Link href="/chat" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
                 もっと見る <ArrowRight size={13} />
               </Link>
             </div>
@@ -422,10 +422,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Video size={16} className="text-[#2563eb]" />
+                <Video size={16} className="text-[#1f7a00]" />
                 最新の動画
               </h2>
-              <Link href="/videos" className="text-[#2563eb] text-sm hover:underline flex items-center gap-1">
+              <Link href="/videos" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
                 もっと見る <ArrowRight size={13} />
               </Link>
             </div>
@@ -478,10 +478,10 @@ export default function DashboardPage() {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-6">
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <BookOpen size={16} className="text-[#2563eb]" />
+                <BookOpen size={16} className="text-[#1f7a00]" />
                 ナレッジベース
               </h2>
-              <Link href="/articles" className="text-[#2563eb] text-sm hover:underline flex items-center gap-1">
+              <Link href="/articles" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
                 すべて見る <ArrowRight size={13} />
               </Link>
             </div>

@@ -57,7 +57,7 @@ export default function MemberPopup({ member, onClose }: Props) {
           <X size={15} />
         </button>
 
-        <div className="bg-gradient-to-b from-[#2563eb]/10 to-white pt-8 pb-4 flex justify-center">
+        <div className="bg-gradient-to-b from-[#279300]/10 to-white pt-8 pb-4 flex justify-center">
           {member.avatarUrl && !avatarError ? (
             <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-md ring-4 ring-white">
               <Image
@@ -93,7 +93,7 @@ export default function MemberPopup({ member, onClose }: Props) {
           {dmLink ? (
             <a
               href={dmLink}
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#4A154B] hover:bg-[#3e1140] text-white rounded-xl text-sm font-medium transition-colors"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-slack-brand hover:bg-slack-brandDark text-white rounded-xl text-sm font-medium transition-colors"
             >
               <MessageCircle size={15} />
               Slackでメッセージを送る

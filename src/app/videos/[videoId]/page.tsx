@@ -102,13 +102,13 @@ function RelatedCard({ video, folderId }: { video: VimeoVideo; folderId: string 
         {thumb && !imgError ? (
           <Image src={thumb} alt={video.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" onError={() => setImgError(true)} />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#2563eb]/10">
-            <Video size={18} className="text-[#2563eb]/40" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#279300]/10">
+            <Video size={18} className="text-[#1f7a00]/40" />
           </div>
         )}
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <div className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center">
-            <Play size={11} className="text-[#2563eb] ml-0.5" fill="currentColor" />
+            <Play size={11} className="text-[#1f7a00] ml-0.5" fill="currentColor" />
           </div>
         </div>
         <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded font-mono">
@@ -116,7 +116,7 @@ function RelatedCard({ video, folderId }: { video: VimeoVideo; folderId: string 
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 group-hover:text-[#2563eb] transition-colors">
+        <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
           {video.name}
         </p>
         <p className="text-xs text-gray-400 mt-1">{formatDate(video.created_time)}</p>
@@ -185,7 +185,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="w-10 h-10 border-[3px] border-blue-900 border-t-[#2563eb] rounded-full animate-spin" />
+        <div className="w-10 h-10 border-[3px] border-accel-dark border-t-[#279300] rounded-full animate-spin" />
       </div>
     )
   }
@@ -287,7 +287,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
             {video.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {video.tags.map((t) => (
-                  <span key={t.name} className="flex items-center gap-1 text-xs px-2.5 py-1 bg-[#2563eb]/20 text-blue-300 rounded-full">
+                  <span key={t.name} className="flex items-center gap-1 text-xs px-2.5 py-1 bg-[#279300]/20 text-accel-light rounded-full">
                     <Tag size={10} />{t.name}
                   </span>
                 ))}

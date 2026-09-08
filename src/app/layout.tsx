@@ -3,7 +3,15 @@ import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
-const notoSansJP = Noto_Sans_JP({ subsets: ["latin"], weight: ["400", "500", "700"] });
+// 游ゴシックが無い端末（Android 等）のためのフォールバック。
+// 先読みすると游ゴシックのある Mac / Windows で無駄になるので preload は切る。
+const notoSansJP = Noto_Sans_JP({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-noto-sans-jp",
+  preload: false,
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -48,11 +56,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ja" className="h-full">
+    <html lang="ja" className={`h-full ${notoSansJP.variable}`}>
       <head>
-        <meta name="theme-color" content="#2563eb" />
+        <meta name="theme-color" content="#1f7a00" />
       </head>
-      <body className={`${notoSansJP.className} h-full pb-bottom-nav`}>
+      <body className="h-full pb-bottom-nav">
         {children}
         <BottomNav />
       </body>

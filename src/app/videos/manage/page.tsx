@@ -95,8 +95,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
-const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#2563eb]/30 focus:border-[#2563eb]'
-const btnPrimary = 'flex-1 py-2.5 bg-[#2563eb] text-white rounded-xl text-sm font-medium hover:bg-[#1d4ed8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/30 focus:border-[#279300]'
+const btnPrimary = 'flex-1 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
 const btnCancel = 'flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-30'
 
 // ─── Create Folder Modal ──────────────────────────────────────────────────────
@@ -242,11 +242,11 @@ function UploadModal({
         <div
           onClick={() => !busy && fileRef.current?.click()}
           className={`border-2 border-dashed rounded-xl px-4 py-6 text-center cursor-pointer transition-colors ${
-            file ? 'border-[#2563eb]/50 bg-[#2563eb]/5' : 'border-gray-200 hover:border-[#2563eb]/40'
+            file ? 'border-[#279300]/50 bg-[#279300]/5' : 'border-gray-200 hover:border-[#279300]/40'
           } ${busy ? 'pointer-events-none opacity-60' : ''}`}
         >
           {file ? (
-            <div className="flex items-center justify-center gap-2 text-[#2563eb]">
+            <div className="flex items-center justify-center gap-2 text-[#1f7a00]">
               <Video size={20} />
               <span className="text-sm font-medium truncate max-w-xs">{file.name}</span>
               <span className="text-xs text-gray-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
@@ -283,12 +283,12 @@ function UploadModal({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>{phaseLabel[phase]}</span>
-              {phase === 'upload' && <span className="font-medium text-[#2563eb]">{progress}%</span>}
+              {phase === 'upload' && <span className="font-medium text-[#1f7a00]">{progress}%</span>}
               {phase === 'done' && <Check size={14} className="text-green-500" />}
             </div>
             {phase === 'upload' && (
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#2563eb] rounded-full transition-all duration-200" style={{ width: `${progress}%` }} />
+                <div className="h-full bg-[#279300] rounded-full transition-all duration-200" style={{ width: `${progress}%` }} />
               </div>
             )}
           </div>
@@ -383,8 +383,8 @@ function VideoRow({
         {thumb ? (
           <Image src={thumb} alt={video.name} fill className="object-cover" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#2563eb]/10">
-            <Video size={18} className="text-[#2563eb]/40" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#279300]/10">
+            <Video size={18} className="text-[#1f7a00]/40" />
           </div>
         )}
         {video.duration > 0 && (
@@ -413,8 +413,8 @@ function VideoRow({
         {isAdmin && (
           <>
             <button onClick={onEdit}
-              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-blue-50 flex items-center justify-center transition-colors" title="編集">
-              <Pencil size={13} className="text-[#2563eb]" />
+              className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-accel-lightest flex items-center justify-center transition-colors" title="編集">
+              <Pencil size={13} className="text-[#1f7a00]" />
             </button>
             <button onClick={onDelete}
               className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-red-50 flex items-center justify-center transition-colors" title="削除">
@@ -509,7 +509,7 @@ export default function ManagePage() {
   if (isLoggedIn === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-[3px] border-blue-100 border-t-[#2563eb] rounded-full animate-spin" />
+        <div className="w-8 h-8 border-[3px] border-accel-lightest border-t-[#279300] rounded-full animate-spin" />
       </div>
     )
   }
@@ -523,8 +523,8 @@ export default function ManagePage() {
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">フォルダ</span>
         {isAdmin && (
           <button onClick={() => setShowCreateFolder(true)}
-            className="w-6 h-6 rounded-lg bg-[#2563eb]/10 hover:bg-[#2563eb]/20 flex items-center justify-center transition-colors" title="フォルダ作成">
-            <FolderPlus size={13} className="text-[#2563eb]" />
+            className="w-6 h-6 rounded-lg bg-[#279300]/10 hover:bg-[#279300]/20 flex items-center justify-center transition-colors" title="フォルダ作成">
+            <FolderPlus size={13} className="text-[#1f7a00]" />
           </button>
         )}
       </div>
@@ -539,7 +539,7 @@ export default function ManagePage() {
             const active = selectedFolderId === id
             return (
               <button key={f.uri} onClick={() => { setSelectedFolderId(id); setSidebarOpen(false) }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${active ? 'bg-[#2563eb] text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${active ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}>
                 {active ? <FolderOpen size={14} className="flex-shrink-0" /> : <Folder size={14} className="text-gray-400 flex-shrink-0" />}
                 <span className="truncate">{f.name}</span>
               </button>
@@ -578,7 +578,7 @@ export default function ManagePage() {
               </button>
             )}
             <button onClick={() => setShowUpload(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] rounded-lg text-xs text-white transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] rounded-lg text-xs text-white transition-colors">
               <Upload size={13} />
               <span className="hidden sm:inline">動画アップロード</span>
             </button>
@@ -610,7 +610,7 @@ export default function ManagePage() {
               <p className="text-base font-medium">左のサイドバーからフォルダを選択してください</p>
               {isAdmin && (
                 <button onClick={() => setShowCreateFolder(true)}
-                  className="mt-2 flex items-center gap-2 px-4 py-2 bg-[#2563eb] text-white rounded-xl text-sm hover:bg-[#1d4ed8] transition-colors">
+                  className="mt-2 flex items-center gap-2 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors">
                   <FolderPlus size={14} />フォルダを作成
                 </button>
               )}
@@ -620,7 +620,7 @@ export default function ManagePage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="font-bold text-gray-900 text-lg flex items-center gap-2">
-                    <FolderOpen size={18} className="text-[#2563eb]" />
+                    <FolderOpen size={18} className="text-[#1f7a00]" />
                     {selectedFolderName}
                   </h2>
                   {!videosLoading && (
@@ -628,14 +628,14 @@ export default function ManagePage() {
                   )}
                 </div>
                 <button onClick={() => setShowUpload(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#2563eb] text-white rounded-xl text-sm font-medium hover:bg-[#1d4ed8] transition-colors">
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors">
                   <Upload size={14} />動画を追加
                 </button>
               </div>
 
               {videosLoading ? (
                 <div className="flex items-center justify-center py-16 gap-3">
-                  <div className="w-8 h-8 border-[3px] border-blue-100 border-t-[#2563eb] rounded-full animate-spin" />
+                  <div className="w-8 h-8 border-[3px] border-accel-lightest border-t-[#279300] rounded-full animate-spin" />
                   <span className="text-gray-400 text-sm">読み込み中...</span>
                 </div>
               ) : videos.length === 0 ? (
@@ -643,7 +643,7 @@ export default function ManagePage() {
                   <Video size={40} className="opacity-30" />
                   <p className="text-sm">このフォルダに動画がありません</p>
                   <button onClick={() => setShowUpload(true)}
-                    className="mt-1 px-4 py-2 bg-[#2563eb] text-white rounded-xl text-sm hover:bg-[#1d4ed8] transition-colors flex items-center gap-1.5">
+                    className="mt-1 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors flex items-center gap-1.5">
                     <Upload size={13} />最初の動画をアップロード
                   </button>
                 </div>

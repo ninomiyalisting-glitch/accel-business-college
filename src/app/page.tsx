@@ -15,7 +15,7 @@ export default function LandingPage() {
         </div>
         <a
           href="/api/auth/slack"
-          className="flex items-center gap-2 px-4 py-2 bg-[#2563eb] text-white text-sm font-medium rounded-lg hover:bg-[#1d4ed8] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#1f7a00] text-white text-sm font-medium rounded-lg hover:bg-[#145200] transition-colors"
         >
           Slackでログイン
         </a>
@@ -35,7 +35,7 @@ export default function LandingPage() {
         <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 leading-tight">
           アクセルビジネスカレッジ
         </h1>
-        <p className="text-xl sm:text-2xl text-[#2563eb] font-medium mb-6">
+        <p className="text-xl sm:text-2xl text-[#1f7a00] font-medium mb-6">
           中小企業診断士として生きていく
         </p>
         <p className="text-gray-500 text-base max-w-md mb-10 leading-relaxed">
@@ -43,7 +43,7 @@ export default function LandingPage() {
         </p>
         <a
           href="/api/auth/slack"
-          className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#2563eb] text-white font-semibold rounded-xl hover:bg-[#1d4ed8] transition-colors shadow-md hover:shadow-lg text-base"
+          className="inline-flex items-center gap-2 px-8 py-3.5 bg-[#1f7a00] text-white font-semibold rounded-xl hover:bg-[#145200] transition-colors shadow-md hover:shadow-lg text-base"
         >
           <svg viewBox="0 0 54 54" className="w-5 h-5" fill="currentColor">
             <path d="M19.712.133a5.381 5.381 0 0 0-5.376 5.387 5.381 5.381 0 0 0 5.376 5.386h5.376V5.52A5.381 5.381 0 0 0 19.712.133m0 14.365H5.376A5.381 5.381 0 0 0 0 19.884a5.381 5.381 0 0 0 5.376 5.387h14.336a5.381 5.381 0 0 0 5.376-5.387 5.381 5.381 0 0 0-5.376-5.386" />
@@ -59,13 +59,13 @@ export default function LandingPage() {
       </main>
 
       {/* Features */}
-      <section className="bg-[#f4f6f9] py-16 px-6">
+      <section className="bg-[#f7faf2] py-16 px-6">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-xl font-bold text-gray-900 text-center mb-10">主な機能</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-              <div className="w-12 h-12 bg-[#eff6ff] rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MessageSquare size={22} className="text-[#2563eb]" />
+              <div className="w-12 h-12 bg-[#e8f5c9] rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MessageSquare size={22} className="text-[#1f7a00]" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">チャット</h3>
               <p className="text-gray-500 text-sm leading-relaxed">
@@ -73,8 +73,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-              <div className="w-12 h-12 bg-[#eff6ff] rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Video size={22} className="text-[#2563eb]" />
+              <div className="w-12 h-12 bg-[#e8f5c9] rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Video size={22} className="text-[#1f7a00]" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">動画ライブラリ</h3>
               <p className="text-gray-500 text-sm leading-relaxed">
@@ -82,8 +82,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
-              <div className="w-12 h-12 bg-[#eff6ff] rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Users size={22} className="text-[#2563eb]" />
+              <div className="w-12 h-12 bg-[#e8f5c9] rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Users size={22} className="text-[#1f7a00]" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">コミュニティ</h3>
               <p className="text-gray-500 text-sm leading-relaxed">

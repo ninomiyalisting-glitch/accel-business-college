@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===================================================================
+   アクセル共通ベーススタイル
+   トークンは tailwind.config.ts が設定元。ここは要素のみの既定値。
+   @layer base に入れることが重要。素の CSS は Tailwind のユーティリティ
+   クラスより強いため、外に書くと text-sm 等が効かなくなる。
+   =================================================================== */
+@layer base {
+  html {
+    font-family: theme('fontFamily.sans');
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  body {
+    color: #000000;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  h1 { font-size: 32px; font-weight: 700; line-height: 1.5; }
+  h2 { font-size: 22px; font-weight: 700; line-height: 1.8; }
+  h3 { font-size: 18px; font-weight: 700; line-height: 1.8; }
+
+  /* 入力フォーム — できる限り大きく。
+     16px 未満だと iOS が focus 時にズームするので下げないこと。
+     チェックボックス等は対象外（潰れるため） */
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']),
+  textarea,
+  select {
+    min-height: 48px;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.8;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid #279300;
+    outline-offset: 1px;
+  }
+
+  /* ボタンは一律に大きくしない。
+     このアプリはリアクション・ツールバー等の小さなアイコンボタンが 54 個あり、
+     min-height を全体にかけると h-6 等（height 指定）に打ち勝って全部潰れる。
+     フォーム送信と、明示的に .btn-lg を付けたものだけ大きくする。 */
+  button {
+    font-family: inherit;
+    font-weight: 600;
+  }
+
+  button[type="submit"],
+  .btn-lg {
+    min-height: 48px;
+  }
+}
+
+
 @layer utilities {
   .pt-safe {
     padding-top: env(safe-area-inset-top);
@@ -98,7 +156,7 @@ textarea {
 .article-editor p { margin: 0.5rem 0; }
 .article-editor ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
 .article-editor ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
-.article-editor a { color: #2563eb; text-decoration: underline; }
+.article-editor a { color: #279300; text-decoration: underline; }
 .article-editor .article-img { max-width: 100%; border-radius: 0.75rem; margin: 0.5rem 0; }
 
 /* 記事表示エリア */
@@ -108,7 +166,7 @@ textarea {
 .article-content ul { list-style: disc; padding-left: 1.5rem; margin: 0.75rem 0; color: #374151; }
 .article-content ol { list-style: decimal; padding-left: 1.5rem; margin: 0.75rem 0; color: #374151; }
 .article-content li { margin: 0.25rem 0; line-height: 1.7; }
-.article-content a { color: #2563eb; text-decoration: underline; }
+.article-content a { color: #279300; text-decoration: underline; }
 .article-content img { max-width: 100%; border-radius: 0.75rem; margin: 0.75rem 0; }
 .article-content strong { font-weight: 700; }
 .article-content em { font-style: italic; }
