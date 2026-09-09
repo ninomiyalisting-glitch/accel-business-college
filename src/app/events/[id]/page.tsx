@@ -5,12 +5,24 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CalendarDays, Clock, CheckCircle2, Copy, Check, Plus, Trash2, UserPlus, ChevronDown, ChevronUp, CalendarCog, X, Image as ImageIcon, Sparkles, Save, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { EVENT_CATEGORIES, toCategory, type EventCategory } from '@/lib/eventCategories'
 import { GalleryPicker } from '@/components/GalleryPicker'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
+/**
+ * 説明文が HTML かどうかを判定する。
+ *
+ * エディタで作ったものは <p> や <h2> を含む。
+ * 既存イベントは素のテキストで、HTML として描くと改行が消えてしまう。
+ * タグらしきものが無ければテキストとして扱う。
+ */
+function looksLikeHtml(text: string): boolean {
+  return /<(p|div|h[1-6]|ul|ol|li|br|img|a|strong|em)\b[^>]*>/i.test(text)
+}
+
 const RESPONSES = ['○', '△', '×'] as const
 type ResponseType = typeof RESPONSES[number]
 
@@ -32,6 +44,7 @@ interface EventData {
   created_by: string
   deadline: string | null
   confirmed_date: string | null
+  category?: string | null
   created_at: string
   cover_image_url?: string | null
 }
@@ -209,6 +222,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const [showDateEditor, setShowDateEditor] = useState(false)
   const [savingDate, setSavingDate] = useState(false)
   const [confirmedInput, setConfirmedInput] = useState('')
+  const [savingCategory, setSavingCategory] = useState(false)
 
   // Cover image edit
   const [showCoverEdit, setShowCoverEdit] = useState(false)
@@ -382,6 +396,24 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   /**
+   * カテゴリーを保存する。
+   * 誰でも、終了したイベントでも後から変更できる（整理のため）。
+   * DB 側に CHECK 制約があるので、4 つ以外は保存時に弾かれる。
+   */
+  const saveCategory = async (next: EventCategory) => {
+    if (savingCategory) return
+    setSavingCategory(true)
+    const { error } = await supabase.from('events').update({ category: next }).eq('id', id)
+    setSavingCategory(false)
+
+    if (error) {
+      alert(`カテゴリーを保存できませんでした：${error.message}`)
+      return
+    }
+    setEvent((cur) => (cur ? { ...cur, category: next } : cur))
+  }
+
+  /**
    * 開催日を保存する。null を渡すと取り消して調整中に戻る。
    * 一覧の 3 分割（調整中 / 開催日決定 / 終了）はこの値で決まる。
    * 誰でも変更できる（本人確認は localStorage なので厳密ではない）。
@@ -530,7 +562,21 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
           <h2 className="text-xl font-bold text-gray-900 leading-relaxed">{event.title}</h2>
-          {event.description && <p className="mt-2 text-sm text-gray-600 leading-relaxed">{event.description}</p>}
+          {event.description && (
+            // 新しいイベントはエディタで作るので HTML が入る。
+            // 既存の 23 件は素のテキストなので、HTML タグを含まない場合は
+            // 改行を生かして表示する（そのまま HTML として描くと改行が消える）。
+            looksLikeHtml(event.description) ? (
+              <div
+                className="article-content mt-3"
+                dangerouslySetInnerHTML={{ __html: event.description }}
+              />
+            ) : (
+              <p className="mt-3 text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {event.description}
+              </p>
+            )
+          )}
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-400">
             <span>作成者: {event.created_by}</span>
             <span>作成日: {format(new Date(event.created_at), 'yyyy/M/d', { locale: ja })}</span>
@@ -546,6 +592,35 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
         </div>
+
+        {/* カテゴリー。誰でも、終了後でも変更できる。
+            過去のイベントを整理するために後から付けられる必要がある。 */}
+        {myName && (
+          <div className="bg-white rounded-2xl border border-accel-lightest shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+              <h3 className="font-bold text-gray-900">カテゴリー</h3>
+              <span className="ml-auto text-sm font-bold text-accel-active">
+                {toCategory(event.category)}
+              </span>
+            </div>
+            <div className="p-5 flex flex-wrap gap-2">
+              {EVENT_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => saveCategory(c)}
+                  disabled={savingCategory}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors disabled:opacity-60 ${
+                    toCategory(event.category) === c
+                      ? 'bg-accel-active border-accel-active text-white'
+                      : 'bg-white border-border-soft text-gray-700 hover:bg-accel-lightest hover:border-accel-light'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 開催日の設定。
             これまで confirmed_date は表示するだけで、決める手段が無かった。

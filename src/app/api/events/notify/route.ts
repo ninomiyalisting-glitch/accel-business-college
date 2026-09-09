@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const token = (process.env.SLACK_BOT_TOKEN ?? '').trim()
     if (!token) return NextResponse.json({ error: 'No token' }, { status: 500 })
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://accel-business-college.vercel.app'
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://college.accel-dash.com'
     const eventUrl = `${baseUrl}/events/${body.event_id}`
 
     let text = `📅 *新しいイベントが作成されました*\n`

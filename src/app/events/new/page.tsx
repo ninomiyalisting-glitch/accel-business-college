@@ -5,7 +5,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Plus, Trash2, CalendarDays, Send, Image as ImageIcon, Sparkles, Upload, GalleryHorizontal } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import RichTextEditor from '@/components/RichTextEditor'
 import { GalleryPicker } from '@/components/GalleryPicker'
+
+import { EVENT_CATEGORIES, type EventCategory } from '@/lib/eventCategories'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 
@@ -39,11 +42,19 @@ export default function NewEventPage() {
   const [showGallery, setShowGallery] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [saving, setSaving] = useState(false)
+  const [category, setCategory] = useState<EventCategory>('その他')
+  const [myAvatar, setMyAvatar] = useState<string | null>(null)
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SLACK_USER_KEY)
-      if (saved) setMyName(JSON.parse(saved).display_name ?? null)
+      if (saved) {
+        const u = JSON.parse(saved)
+        setMyName(u.display_name ?? null)
+        // 一覧で作成者アイコンを出すため、作成時に保存しておく。
+        // 毎回 users を引き直さずに済む。
+        setMyAvatar(u.avatar_url ?? null)
+      }
     } catch { /* ignore */ }
   }, [])
 
@@ -92,6 +103,19 @@ export default function NewEventPage() {
     setUploadingCover(false)
   }
 
+  /**
+   * 説明文に貼る画像をアップロードする。
+   * カバー画像とは別で、本文の中に入る画像。
+   */
+  const handleImageUpload = async (file: File): Promise<string> => {
+    const ext = file.name.split('.').pop()
+    const path = `description/${Date.now()}.${ext}`
+    const { error } = await supabase.storage.from('events').upload(path, file, { upsert: true })
+    if (error) throw error
+    const { data } = supabase.storage.from('events').getPublicUrl(path)
+    return data.publicUrl
+  }
+
   const handleSubmit = async () => {
     if (!myName) return alert('Slackログインが必要です')
     if (!title.trim()) return alert('タイトルを入力してください')
@@ -109,6 +133,8 @@ export default function NewEventPage() {
           created_by: myName,
           deadline: deadline ? new Date(deadline).toISOString() : null,
           cover_image_url: coverImageUrl.trim() || null,
+          category,
+          created_by_avatar: myAvatar,
         })
         .select()
         .single()
@@ -171,7 +197,7 @@ export default function NewEventPage() {
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-content mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">イベント一覧</span>
@@ -189,7 +215,7 @@ export default function NewEventPage() {
         </div>
       </header>
 
-      <main className="max-w-prose mx-auto px-4 py-6 pb-bottom-nav space-y-4">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Basic info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
@@ -203,13 +229,34 @@ export default function NewEventPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">説明（任意）</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="詳細や注意事項など"
-              rows={3}
-              className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] resize-none"
+            <label className="block text-sm font-bold text-gray-700 mb-2">カテゴリー</label>
+            <div className="flex flex-wrap gap-2">
+              {EVENT_CATEGORIES.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCategory(c)}
+                  className={`px-4 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors ${
+                    category === c
+                      ? 'bg-accel-active border-accel-active text-white'
+                      : 'bg-white border-border-soft text-gray-700 hover:bg-accel-lightest hover:border-accel-light'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">説明（任意）</label>
+            {/* 記事と同じエディタ。見出し・太字・リスト・リンク・画像挿入が使える。
+                保存される値は HTML なので、表示側も HTML として描くこと。 */}
+            <RichTextEditor
+              onChange={setDescription}
+              onImageUpload={handleImageUpload}
+              placeholder="開催の目的、持ち物、注意事項など"
+              minHeight={220}
             />
           </div>
           <div>

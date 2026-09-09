@@ -8,19 +8,16 @@ import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import Avatar from '@/components/Avatar'
+import {
+  EVENT_CATEGORIES as CATEGORIES,
+  EVENT_CATEGORY_STYLE as CATEGORY_STYLE,
+  toCategory,
+  type EventCategory as Category,
+} from '@/lib/eventCategories'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 
-/** カテゴリー。DB 側の CHECK 制約と同じ 4 つ。増やすときは SQL も直すこと */
-const CATEGORIES = ['勉強会', '食事会', 'レジャー', 'その他'] as const
-type Category = typeof CATEGORIES[number]
 
-const CATEGORY_STYLE: Record<Category, string> = {
-  勉強会: 'bg-accel-lightest text-accel-text',
-  食事会: 'bg-amber-100 text-amber-800',
-  レジャー: 'bg-sky-100 text-sky-800',
-  その他: 'bg-gray-100 text-gray-700',
-}
 
 interface EventDate {
   id: string
@@ -142,6 +139,23 @@ export default function EventsPage() {
     load()
   }, [])
 
+  /**
+   * カテゴリーを変える。一覧から直接変えられるようにしているのは、
+   * 既存イベントを整理するのに 1 件ずつ詳細を開くのが手間だから。
+   * 終了したイベントでも変更できる。
+   */
+  const changeCategory = async (eventId: string, next: Category) => {
+    // 先に画面を更新して、失敗したら戻す
+    const before = events
+    setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, category: next } : e)))
+
+    const { error } = await supabase.from('events').update({ category: next }).eq('id', eventId)
+    if (error) {
+      setEvents(before)
+      alert(`カテゴリーを保存できませんでした：${error.message}`)
+    }
+  }
+
   // 3 ブロックに振り分ける。
   // 開催日決定は近い順、それ以外は新しい順。
   const grouped = useMemo(() => {
@@ -229,7 +243,13 @@ export default function EventsPage() {
                 </div>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   {list.map((ev) => (
-                    <EventCard key={ev.id} ev={ev} phase={key} />
+                    <EventCard
+                      key={ev.id}
+                      ev={ev}
+                      phase={key}
+                      canEdit={!!myName}
+                      onChangeCategory={changeCategory}
+                    />
                   ))}
                 </div>
               </section>
@@ -241,9 +261,20 @@ export default function EventsPage() {
   )
 }
 
-function EventCard({ ev, phase }: { ev: Event; phase: Phase }) {
-  const category = (ev.category ?? 'その他') as Category
-  const catStyle = CATEGORY_STYLE[category] ?? CATEGORY_STYLE['その他']
+function EventCard({
+  ev,
+  phase,
+  canEdit,
+  onChangeCategory,
+}: {
+  ev: Event
+  phase: Phase
+  canEdit: boolean
+  onChangeCategory: (eventId: string, next: Category) => void
+}) {
+  const category = toCategory(ev.category)
+  const catStyle = CATEGORY_STYLE[category]
+  const [picking, setPicking] = useState(false)
 
   return (
     <Link
@@ -287,10 +318,21 @@ function EventCard({ ev, phase }: { ev: Event; phase: Phase }) {
         </h3>
 
         {/* タグ */}
-        <div className="flex flex-wrap gap-1.5">
-          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${catStyle}`}>
-            {category}
-          </span>
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {canEdit ? (
+            // カードの中なので、Link への伝播を止めてから開く
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPicking((v) => !v) }}
+              title="カテゴリーを変更"
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold hover:ring-2 hover:ring-accel-light transition-all ${catStyle}`}
+            >
+              {category}
+            </button>
+          ) : (
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${catStyle}`}>
+              {category}
+            </span>
+          )}
           {phase === 'fixed' && (
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-accel-primary text-white">
               <CheckCircle2 size={13} /> 開催決定
@@ -332,6 +374,30 @@ function EventCard({ ev, phase }: { ev: Event; phase: Phase }) {
             </>
           )}
         </div>
+
+        {/* カテゴリーの変更。タグを押すと開く */}
+        {picking && (
+          <div className="flex flex-wrap gap-1.5 -mt-0.5">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onChangeCategory(ev.id, c)
+                  setPicking(false)
+                }}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                  c === category
+                    ? 'bg-accel-active border-accel-active text-white'
+                    : 'bg-white border-border-soft text-gray-600 hover:bg-accel-lightest'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 作成者と回答数 */}
         <div className="mt-auto pt-2.5 border-t border-gray-100 flex items-center gap-2">

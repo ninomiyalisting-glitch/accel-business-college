@@ -3,7 +3,7 @@
 import Link from 'next/link'
 
 import { useState, useEffect } from 'react'
-import { Bell, Volume2, Shield } from 'lucide-react'
+import { Bell, Volume2, Shield, Award } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
@@ -59,6 +59,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle')
+  // 診断士の更新期限。トップページでポイントの進捗を出すために使う。
+  // 通知のトグルとは性質が違うので UserSettings には入れない。
+  const [renewalDeadline, setRenewalDeadline] = useState('')
 
   useEffect(() => {
     try {
@@ -84,6 +87,7 @@ export default function SettingsPage() {
             notify_new_member: data.notify_new_member ?? false,
             sound_enabled: data.sound_enabled ?? true,
           })
+          setRenewalDeadline(data.renewal_deadline ?? '')
         }
         setLoading(false)
       })
@@ -98,7 +102,12 @@ export default function SettingsPage() {
     await supabase
       .from('user_settings')
       .upsert(
-        { slack_user_id: slackUserId, ...settings, updated_at: new Date().toISOString() },
+        {
+          slack_user_id: slackUserId,
+          ...settings,
+          renewal_deadline: renewalDeadline || null,
+          updated_at: new Date().toISOString(),
+        },
         { onConflict: 'slack_user_id' }
       )
     setSaving(false)
@@ -141,6 +150,36 @@ export default function SettingsPage() {
               <p className="text-xs text-gray-400 mt-0.5">通知が届いたときに音を鳴らす</p>
             </div>
             <Toggle enabled={settings.sound_enabled} onToggle={() => toggle('sound_enabled')} />
+          </div>
+        </div>
+
+        {/* 実務従事の更新期限。
+            トップページで「期限までに 30 ポイント」の進捗を出すのに使う。
+            未入力ならトップでは合計だけを出す。 */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+            <Award size={15} className="text-[#1f7a00]" />
+            <h2 className="font-semibold text-gray-900 text-sm">実務従事の更新期限</h2>
+          </div>
+          <div className="px-5 py-4">
+            <label htmlFor="renewal" className="block text-sm text-gray-600 mb-2">
+              登録更新の期限日を入れると、トップページで 30 ポイントまでの進捗が出ます。
+            </label>
+            <input
+              id="renewal"
+              type="date"
+              value={renewalDeadline}
+              onChange={(e) => setRenewalDeadline(e.target.value)}
+              className="w-full max-w-xs px-4 py-3 bg-white border-2 border-border-soft rounded-xl focus:outline-none focus:border-accel-primary"
+            />
+            {renewalDeadline && (
+              <button
+                onClick={() => setRenewalDeadline('')}
+                className="ml-3 text-sm text-gray-500 hover:text-red-600 underline"
+              >
+                消す
+              </button>
+            )}
           </div>
         </div>
 
