@@ -1,17 +1,35 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Image from 'next/image'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { MessageSquare, Video, Users, ArrowRight, Hash, ImageIcon, CalendarDays, Sparkles, CheckCircle2, Clock, ChevronRight, BookOpen } from 'lucide-react'
-import { SlackUser, Message, Channel } from '@/types'
+import {
+  MessageSquare,
+  Video,
+  ArrowRight,
+  Hash,
+  CalendarDays,
+  CheckCircle2,
+  Clock,
+  ChevronRight,
+  Award,
+  Users,
+  Target,
+} from 'lucide-react'
+import { Message } from '@/types'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
+import Avatar from '@/components/Avatar'
+import {
+  EVENT_CATEGORY_STYLE as CATEGORY_STYLE,
+  toCategory,
+} from '@/lib/eventCategories'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 const USER_NAME_KEY = 'abc_userName'
+
+/** 実務従事更新ポイントの目標。期限までにこの点数を貯める */
+const POINT_TARGET = 30
 
 interface VimeoVideo {
   uri: string
@@ -19,6 +37,33 @@ interface VimeoVideo {
   duration: number
   created_time: string
   pictures: { sizes: { width: number; link: string }[] }
+}
+
+interface EventDate {
+  id: string
+  date: string
+  end_time?: string | null
+}
+
+interface DashEvent {
+  id: string
+  title: string
+  category: string | null
+  cover_image_url: string | null
+  created_by: string
+  created_by_avatar: string | null
+  deadline: string | null
+  confirmed_date: string | null
+  created_at: string
+  dates: EventDate[]
+  response_count: number
+}
+
+interface PointRow {
+  id: string
+  worked_on: string
+  points: number
+  activity: string
 }
 
 function getThumbnail(pictures: VimeoVideo['pictures']): string {
@@ -36,45 +81,202 @@ function formatDuration(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
+/**
+ * イベントを「開催日決定」「調整中」「終了」に分ける。
+ * 判定は一覧ページ（events/page.tsx）の phaseOf と同じ規則にしている。
+ * 片方だけ直すと同じイベントが 2 つの画面で違う扱いになるので、
+ * 規則を変えるときは両方を直すこと。
+ */
+function phaseOf(ev: DashEvent): 'fixed' | 'adjusting' | 'ended' {
+  const now = new Date()
+  if (ev.confirmed_date) {
+    return new Date(ev.confirmed_date) < now ? 'ended' : 'fixed'
+  }
+  if (ev.dates.length > 0 && ev.dates.every((d) => new Date(d.end_time ?? d.date) < now)) {
+    return 'ended'
+  }
+  return 'adjusting'
+}
+
+/** 期限までの残り月数（切り上げ）。過ぎていたら 0 */
+function monthsUntil(deadline: string): number {
+  const end = new Date(`${deadline}T23:59:59`)
+  const now = new Date()
+  if (end < now) return 0
+  const days = (end.getTime() - now.getTime()) / 86400000
+  return Math.max(1, Math.ceil(days / 30.4))
+}
+
+function greeting(): string {
+  const h = new Date().getHours()
+  if (h < 5) return 'こんばんは'
+  if (h < 11) return 'おはようございます'
+  if (h < 18) return 'こんにちは'
+  return 'こんばんは'
+}
+
+/** 見出しつきのカード。ブロックを増やすときはこれで包む */
+function Panel({
+  icon,
+  title,
+  href,
+  linkLabel = 'すべて見る',
+  children,
+  className = '',
+}: {
+  icon: React.ReactNode
+  title: string
+  href?: string
+  linkLabel?: string
+  children: React.ReactNode
+  className?: string
+}) {
+  return (
+    <section className={`bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden ${className}`}>
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4">
+        <span className="flex items-center justify-center w-10 h-10 rounded-2xl bg-accel-lightest text-accel-text flex-shrink-0">
+          {icon}
+        </span>
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+        {href && (
+          <Link
+            href={href}
+            className="ml-auto text-accel-active text-sm font-semibold hover:underline flex items-center gap-1 flex-shrink-0"
+          >
+            {linkLabel} <ArrowRight size={14} />
+          </Link>
+        )}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function EmptyNote({ children }: { children: React.ReactNode }) {
+  return <div className="px-6 pb-8 pt-2 text-gray-400">{children}</div>
+}
+
+function SkeletonRows({ count = 3 }: { count?: number }) {
+  return (
+    <div className="px-6 pb-6 space-y-3">
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="animate-pulse flex items-center gap-3">
+          <div className="h-4 bg-gray-100 rounded w-2/5" />
+          <div className="h-3 bg-gray-100 rounded w-16 ml-auto" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** イベント 1 件。決定・調整中どちらでも使う */
+function EventRow({ ev, phase }: { ev: DashEvent; phase: 'fixed' | 'adjusting' }) {
+  const category = toCategory(ev.category)
+  const upcoming = ev.dates.filter((d) => new Date(d.end_time ?? d.date) >= new Date())
+  const deadlinePassed = ev.deadline ? new Date(ev.deadline) < new Date() : false
+
+  return (
+    <Link
+      href={`/events/${ev.id}`}
+      className="flex gap-4 px-6 py-4 hover:bg-surface-muted transition-colors group"
+    >
+      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-accel-lightest overflow-hidden flex-shrink-0">
+        {ev.cover_image_url ? (
+          // next/image は登録外ドメインで例外を投げてページごと落ちるので img を使う
+          <img src={ev.cover_image_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-accel-secondary">
+            <CalendarDays size={28} />
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${CATEGORY_STYLE[category]}`}>
+            {category}
+          </span>
+          {phase === 'fixed' ? (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full bg-accel-primary text-white">
+              <CheckCircle2 size={12} /> 開催日決定
+            </span>
+          ) : deadlinePassed ? (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+              締切済み
+            </span>
+          ) : (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+              回答受付中
+            </span>
+          )}
+        </div>
+
+        <p className="font-bold text-gray-900 text-base sm:text-lg leading-snug line-clamp-2">
+          {ev.title}
+        </p>
+
+        <div className="flex items-center gap-x-4 gap-y-1 flex-wrap mt-2 text-sm text-gray-500">
+          {ev.confirmed_date ? (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-accel-text">
+              <CalendarDays size={15} />
+              {format(new Date(ev.confirmed_date), 'M月d日(E) HH:mm', { locale: ja })}
+            </span>
+          ) : upcoming.length > 0 ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays size={15} />
+              候補 {upcoming.length}日（
+              {format(new Date(upcoming[0].date), 'M/d(E)', { locale: ja })} 〜）
+            </span>
+          ) : null}
+
+          <span className="inline-flex items-center gap-1.5">
+            <Users size={15} />
+            {ev.response_count}人回答
+          </span>
+
+          {ev.deadline && !ev.confirmed_date && (
+            <span className={`inline-flex items-center gap-1.5 ${deadlinePassed ? 'text-red-500' : ''}`}>
+              <Clock size={15} />
+              締切 {format(new Date(ev.deadline), 'M/d', { locale: ja })}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <ChevronRight
+        size={20}
+        className="text-gray-300 flex-shrink-0 self-center group-hover:text-accel-secondary transition-colors"
+      />
+    </Link>
+  )
+}
+
 export default function DashboardPage() {
-  const router = useRouter()
-  const [slackUser, setSlackUser] = useState<SlackUser | null>(null)
   const [userName, setUserName] = useState<string>('')
-  const [recentMessages, setRecentMessages] = useState<(Message & { channel_name?: string })[]>([])
+  const [slackUserId, setSlackUserId] = useState<string | null>(null)
+
+  const [events, setEvents] = useState<DashEvent[]>([])
+  const [recentMessages, setRecentMessages] = useState<Message[]>([])
   const [channelMap, setChannelMap] = useState<Record<string, string>>({})
   const [recentVideos, setRecentVideos] = useState<VimeoVideo[]>([])
-  const [memberCount, setMemberCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
-  const [recentEvents, setRecentEvents] = useState<{
-    id: string
-    title: string
-    deadline: string | null
-    confirmed_date: string | null
-    created_at: string
-    date_count: number
-    response_count: number
-    dates: { id: string; date: string }[]
-  }[]>([])
-  const [articleCategories, setArticleCategories] = useState<{
-    id: string
-    name: string
-    color: string
-    count: number
-  }[]>([])
+
+  const [points, setPoints] = useState<PointRow[]>([])
+  const [renewalDeadline, setRenewalDeadline] = useState<string | null>(null)
+  const [pointsLoading, setPointsLoading] = useState(true)
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SLACK_USER_KEY)
       if (saved) {
-        const user: SlackUser = JSON.parse(saved)
-        setSlackUser(user)
-        setUserName(user.display_name)
+        const user = JSON.parse(saved) as { display_name?: string; slack_user_id?: string }
+        setUserName(user.display_name ?? '')
+        setSlackUserId(user.slack_user_id ?? null)
       } else {
-        const name = localStorage.getItem(USER_NAME_KEY) ?? ''
-        setUserName(name)
+        setUserName(localStorage.getItem(USER_NAME_KEY) ?? '')
       }
     } catch {
-      // ignore
+      // 壊れた localStorage は無視してゲスト表示にする
     }
   }, [])
 
@@ -82,41 +284,31 @@ export default function DashboardPage() {
     const load = async () => {
       setLoading(true)
 
-      // First batch: all independent queries in parallel
-      const [channelsRes, memberCountRes, eventsRes, catsRes, artCountRes, vimeoResult] = await Promise.all([
+      const [channelsRes, eventsRes, vimeoResult] = await Promise.all([
         supabase.from('channels').select('id, name').eq('is_hidden', false),
-        supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase
           .from('events')
-          .select('id, title, deadline, confirmed_date, created_at')
+          .select(
+            'id, title, category, cover_image_url, created_by, created_by_avatar, deadline, confirmed_date, created_at'
+          )
           .order('created_at', { ascending: false })
-          .limit(5),
-        supabase.from('article_categories').select('id, name, color').order('name'),
-        supabase.from('articles').select('category_id').eq('published', true),
-        fetch('/api/vimeo/videos?project_id=25313251&recursive=1').then((r) => r.json()).catch(() => null),
+          .limit(40),
+        fetch('/api/vimeo/videos?project_id=25313251&recursive=1')
+          .then((r) => r.json())
+          .catch(() => null),
       ])
 
       const cmap: Record<string, string> = {}
       for (const c of channelsRes.data ?? []) cmap[c.id] = c.name
       setChannelMap(cmap)
 
-      setMemberCount(memberCountRes.count ?? null)
-
-      const countMap: Record<string, number> = {}
-      for (const a of artCountRes.data ?? []) {
-        if (a.category_id) countMap[a.category_id] = (countMap[a.category_id] ?? 0) + 1
-      }
-      const cats = (catsRes.data ?? []) as { id: string; name: string; color: string }[]
-      setArticleCategories(cats.map((c) => ({ ...c, count: countMap[c.id] ?? 0 })))
-
       if (vimeoResult && Array.isArray(vimeoResult.data)) {
-        setRecentVideos((vimeoResult.data as VimeoVideo[]).slice(0, 3))
+        setRecentVideos((vimeoResult.data as VimeoVideo[]).slice(0, 4))
       }
 
-      // Second batch: queries that depend on first-batch results, also in parallel
-      const channelIds = Object.keys(cmap)
-      const eventsData = eventsRes.data ?? []
+      const eventsData = (eventsRes.data ?? []) as Omit<DashEvent, 'dates' | 'response_count'>[]
       const eventIds = eventsData.map((e) => e.id)
+      const channelIds = Object.keys(cmap)
 
       const [msgsRes, datesRes, responsesRes] = await Promise.all([
         channelIds.length > 0
@@ -125,11 +317,15 @@ export default function DashboardPage() {
               .select('*')
               .in('channel_id', channelIds)
               .order('created_at', { ascending: false })
-              .limit(3)
+              .limit(5)
           : Promise.resolve({ data: [] as Message[] }),
         eventIds.length > 0
-          ? supabase.from('event_dates').select('event_id, id, date').in('event_id', eventIds).order('date')
-          : Promise.resolve({ data: [] as { event_id: string; id: string; date: string }[] }),
+          ? supabase
+              .from('event_dates')
+              .select('event_id, id, date, end_time')
+              .in('event_id', eventIds)
+              .order('date')
+          : Promise.resolve({ data: [] as (EventDate & { event_id: string })[] }),
         eventIds.length > 0
           ? supabase.from('event_responses').select('event_id, responder_name').in('event_id', eventIds)
           : Promise.resolve({ data: [] as { event_id: string; responder_name: string }[] }),
@@ -137,298 +333,303 @@ export default function DashboardPage() {
 
       setRecentMessages((msgsRes.data ?? []) as Message[])
 
-      if (eventsData.length > 0) {
-        const datesByEvent: Record<string, { id: string; date: string }[]> = {}
-        for (const d of datesRes.data ?? []) {
-          if (!datesByEvent[d.event_id]) datesByEvent[d.event_id] = []
-          datesByEvent[d.event_id].push({ id: d.id, date: d.date })
-        }
-        const responderSets: Record<string, Set<string>> = {}
-        for (const r of responsesRes.data ?? []) {
-          if (!responderSets[r.event_id]) responderSets[r.event_id] = new Set()
-          responderSets[r.event_id].add(r.responder_name)
-        }
-        setRecentEvents(eventsData.map((e) => ({
+      const datesByEvent: Record<string, EventDate[]> = {}
+      for (const d of (datesRes.data ?? []) as (EventDate & { event_id: string })[]) {
+        if (!datesByEvent[d.event_id]) datesByEvent[d.event_id] = []
+        datesByEvent[d.event_id].push({ id: d.id, date: d.date, end_time: d.end_time })
+      }
+      const responderSets: Record<string, Set<string>> = {}
+      for (const r of responsesRes.data ?? []) {
+        if (!responderSets[r.event_id]) responderSets[r.event_id] = new Set()
+        responderSets[r.event_id].add(r.responder_name)
+      }
+
+      setEvents(
+        eventsData.map((e) => ({
           ...e,
           dates: datesByEvent[e.id] ?? [],
-          date_count: datesByEvent[e.id]?.length ?? 0,
           response_count: responderSets[e.id]?.size ?? 0,
-        })))
-      }
+        }))
+      )
 
       setLoading(false)
     }
     load()
   }, [])
 
-  const handleLogout = () => {
-    if (confirm('ログアウトしますか？')) {
-      localStorage.removeItem(SLACK_USER_KEY)
-      localStorage.removeItem(USER_NAME_KEY)
-      router.push('/')
+  // ポイントと期限は本人が分かってから読む
+  useEffect(() => {
+    if (!slackUserId) {
+      setPointsLoading(false)
+      return
     }
-  }
+    const load = async () => {
+      setPointsLoading(true)
+      const [pointsRes, settingsRes] = await Promise.all([
+        supabase
+          .from('practice_points')
+          .select('id, worked_on, points, activity')
+          .eq('slack_user_id', slackUserId)
+          .order('worked_on', { ascending: false }),
+        supabase
+          .from('user_settings')
+          .select('renewal_deadline')
+          .eq('slack_user_id', slackUserId)
+          .maybeSingle(),
+      ])
+      setPoints((pointsRes.data ?? []) as PointRow[])
+      setRenewalDeadline(settingsRes.data?.renewal_deadline ?? null)
+      setPointsLoading(false)
+    }
+    load()
+  }, [slackUserId])
+
+  const fixedEvents = useMemo(
+    () =>
+      events
+        .filter((e) => phaseOf(e) === 'fixed')
+        .sort((a, b) => (a.confirmed_date ?? '').localeCompare(b.confirmed_date ?? ''))
+        .slice(0, 3),
+    [events]
+  )
+
+  const adjustingEvents = useMemo(
+    () =>
+      events
+        .filter((e) => phaseOf(e) === 'adjusting')
+        .sort((a, b) => (b.deadline ?? b.created_at).localeCompare(a.deadline ?? a.created_at))
+        .slice(0, 3),
+    [events]
+  )
+
+  /**
+   * 期限までの累計。
+   * 期限が未登録なら全期間の合計を出す（0 を見せても意味がないため）。
+   */
+  const pointSummary = useMemo(() => {
+    const inRange = renewalDeadline
+      ? points.filter((p) => p.worked_on <= renewalDeadline)
+      : points
+    const total = inRange.reduce((sum, p) => sum + p.points, 0)
+    return {
+      total,
+      remaining: Math.max(0, POINT_TARGET - total),
+      percent: Math.min(100, Math.round((total / POINT_TARGET) * 100)),
+      months: renewalDeadline ? monthsUntil(renewalDeadline) : null,
+      count: inRange.length,
+      latest: inRange[0] ?? null,
+    }
+  }, [points, renewalDeadline])
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
-      {/* Header */}
-
+    <div className="min-h-screen bg-surface-muted">
       <main className="max-w-content mx-auto px-4 py-8 pb-bottom-nav">
-        {/* Welcome */}
+        {/* あいさつ */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            こんにちは、{userName || 'ゲスト'}さん 👋
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            {greeting()}、{userName || 'ゲスト'}さん
           </h1>
-          <p className="text-gray-500 mt-1">今日もビジネスの知見を深めましょう。</p>
+          <p className="text-gray-500 mt-2">
+            {format(new Date(), 'yyyy年M月d日(E)', { locale: ja })} ・ 今日もビジネスの知見を深めましょう。
+          </p>
         </div>
 
-        {/* Recent events */}
-        {(loading || recentEvents.length > 0) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-8">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <CalendarDays size={16} className="text-[#1f7a00]" />
-                イベント
-              </h2>
-              <Link href="/events" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
-                すべて見る <ArrowRight size={13} />
+        {/* ① 開催決定イベント */}
+        <Panel
+          icon={<CheckCircle2 size={20} />}
+          title="開催が決まったイベント"
+          href="/events"
+          className="mb-6"
+        >
+          {loading ? (
+            <SkeletonRows count={2} />
+          ) : fixedEvents.length === 0 ? (
+            <EmptyNote>開催日が決まったイベントはまだありません。</EmptyNote>
+          ) : (
+            <div className="divide-y divide-gray-50 border-t border-gray-50">
+              {fixedEvents.map((ev) => (
+                <EventRow key={ev.id} ev={ev} phase="fixed" />
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        {/* ② 調整中イベント */}
+        <Panel
+          icon={<Clock size={20} />}
+          title="日程調整中のイベント"
+          href="/events"
+          className="mb-6"
+        >
+          {loading ? (
+            <SkeletonRows count={2} />
+          ) : adjustingEvents.length === 0 ? (
+            <EmptyNote>調整中のイベントはありません。</EmptyNote>
+          ) : (
+            <div className="divide-y divide-gray-50 border-t border-gray-50">
+              {adjustingEvents.map((ev) => (
+                <EventRow key={ev.id} ev={ev} phase="adjusting" />
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        {/* ③ 実務従事更新ポイント */}
+        <section className="bg-gradient-to-br from-accel-text to-accel-primary text-white rounded-3xl shadow-sm overflow-hidden mb-6">
+          <div className="px-6 py-6 sm:px-8 sm:py-7">
+            <div className="flex items-center gap-3 mb-6">
+              <span className="flex items-center justify-center w-10 h-10 rounded-2xl bg-white/15 flex-shrink-0">
+                <Award size={20} />
+              </span>
+              <h2 className="text-lg font-bold">実務従事更新ポイント</h2>
+              <Link
+                href={slackUserId ? `/members/${slackUserId}` : '/members'}
+                className="ml-auto text-white/90 text-sm font-semibold hover:text-white hover:underline flex items-center gap-1 flex-shrink-0"
+              >
+                履歴を見る <ArrowRight size={14} />
               </Link>
             </div>
-            {loading ? (
-              <div className="divide-y divide-gray-50">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="px-5 py-3.5 animate-pulse flex items-center gap-3">
-                    <div className="h-3.5 bg-gray-100 rounded w-1/3" />
-                    <div className="h-3 bg-gray-100 rounded w-16 ml-auto" />
-                  </div>
-                ))}
+
+            {pointsLoading ? (
+              <div className="animate-pulse space-y-4">
+                <div className="h-10 bg-white/15 rounded w-40" />
+                <div className="h-3 bg-white/15 rounded-full" />
               </div>
+            ) : !slackUserId ? (
+              <p className="text-white/80">
+                Slack アカウントでログインすると、あなたのポイント状況が表示されます。
+              </p>
             ) : (
-              <ul className="divide-y divide-gray-50">
-                {recentEvents.map((ev) => {
-                  const isPast = ev.deadline ? new Date(ev.deadline) < new Date() : false
-                  return (
-                    <li key={ev.id}>
-                      <Link
-                        href={`/events/${ev.id}`}
-                        className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            {ev.confirmed_date ? (
-                              <span className="flex items-center gap-1 text-[14px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium flex-shrink-0">
-                                <CheckCircle2 size={9} /> 確定
-                              </span>
-                            ) : isPast ? (
-                              <span className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full font-medium flex-shrink-0">締切済み</span>
-                            ) : (
-                              <span className="text-[14px] px-1.5 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium flex-shrink-0">受付中</span>
-                            )}
-                            <span className="font-medium text-gray-800 text-sm truncate">{ev.title}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
-                            <span>{ev.response_count}人回答</span>
-                            {ev.deadline && !ev.confirmed_date && (
-                              <span className={`flex items-center gap-1 ${isPast ? 'text-red-400' : ''}`}>
-                                <Clock size={10} />
-                                締切 {format(new Date(ev.deadline), 'M/d', { locale: ja })}
-                              </span>
-                            )}
-                            {ev.confirmed_date && (
-                              <span className="text-green-600 font-medium">
-                                {format(new Date(ev.confirmed_date), 'M/d(E) HH:mm', { locale: ja })}
-                              </span>
-                            )}
-                          </div>
-                          {ev.dates.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {ev.dates.slice(0, 3).map((d) => {
-                                const dt = new Date(d.date)
-                                const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0
-                                return (
-                                  <span key={d.id} className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">
-                                    {format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })}
-                                  </span>
-                                )
-                              })}
-                              {ev.dates.length > 3 && (
-                                <span className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full">
-                                  他{ev.dates.length - 3}件
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <ChevronRight size={15} className="text-gray-300 flex-shrink-0 group-hover:text-gray-400 transition-colors" />
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
+              <>
+                <div className="flex items-end gap-2 flex-wrap">
+                  <span className="text-5xl font-bold tabular-nums leading-none">{pointSummary.total}</span>
+                  <span className="text-xl text-white/70 font-semibold">/ {POINT_TARGET} ポイント</span>
+                  {pointSummary.remaining === 0 && (
+                    <span className="ml-2 mb-1 text-sm font-bold px-3 py-1 rounded-full bg-white text-accel-text">
+                      目標達成
+                    </span>
+                  )}
+                </div>
+
+                <div className="h-3 rounded-full bg-white/20 overflow-hidden mt-5">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-700"
+                    style={{ width: `${pointSummary.percent}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
+                  <div>
+                    <div className="text-white/60 text-sm">残りポイント</div>
+                    <div className="text-2xl font-bold tabular-nums">{pointSummary.remaining}</div>
+                  </div>
+                  <div>
+                    <div className="text-white/60 text-sm">期限</div>
+                    <div className="text-2xl font-bold">
+                      {renewalDeadline
+                        ? format(new Date(`${renewalDeadline}T00:00:00`), 'yyyy/M/d')
+                        : '未設定'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-white/60 text-sm">残り期間</div>
+                    <div className="text-2xl font-bold">
+                      {pointSummary.months === null
+                        ? '—'
+                        : pointSummary.months === 0
+                          ? '期限切れ'
+                          : `約${pointSummary.months}ヶ月`}
+                    </div>
+                  </div>
+                </div>
+
+                {!renewalDeadline && (
+                  <p className="mt-6 text-white/80 text-sm">
+                    <Link href="/settings" className="underline font-semibold hover:text-white">
+                      設定ページ
+                    </Link>
+                    で更新の期限日を登録すると、期限までの進捗が出ます。
+                  </p>
+                )}
+
+                {renewalDeadline && pointSummary.remaining > 0 && (
+                  <p className="mt-6 text-white/80 text-sm inline-flex items-center gap-2">
+                    <Target size={16} className="flex-shrink-0" />
+                    期限まであと {pointSummary.remaining} ポイント
+                    {pointSummary.months !== null && pointSummary.months > 0 && (
+                      <>（月あたり約 {Math.ceil(pointSummary.remaining / pointSummary.months)} ポイント）</>
+                    )}
+                  </p>
+                )}
+              </>
             )}
           </div>
-        )}
-
-        {/* Quick actions */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          <Link
-            href="/chat"
-            className="bg-[#1f7a00] text-white rounded-2xl p-5 flex items-center gap-3 hover:bg-[#145200] transition-colors shadow-sm"
-          >
-            <MessageSquare size={24} />
-            <div>
-              <div className="font-semibold">チャット</div>
-              <div className="text-white/70 text-sm">メッセージを見る</div>
-            </div>
-            <ArrowRight size={16} className="ml-auto opacity-70" />
-          </Link>
-          <Link
-            href="/videos"
-            className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
-          >
-            <Video size={24} className="text-[#1f7a00]" />
-            <div>
-              <div className="font-semibold">動画ライブラリ</div>
-              <div className="text-gray-400 text-sm">勉強会を視聴する</div>
-            </div>
-            <ArrowRight size={16} className="ml-auto text-gray-300" />
-          </Link>
-          <Link
-            href="/gallery"
-            className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
-          >
-            <ImageIcon size={24} className="text-[#1f7a00]" />
-            <div>
-              <div className="font-semibold">ギャラリー</div>
-              <div className="text-gray-400 text-sm">写真をシェア</div>
-            </div>
-            <ArrowRight size={16} className="ml-auto text-gray-300" />
-          </Link>
-          <Link
-            href="/members"
-            className="bg-white rounded-2xl p-5 flex items-center gap-3 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors"
-          >
-            <Users size={24} className="text-[#1f7a00]" />
-            <div>
-              <div className="font-semibold text-gray-800">メンバー数</div>
-              <div className="text-2xl font-bold text-[#1f7a00]">
-                {loading ? '...' : memberCount ?? '-'}
-              </div>
-            </div>
-            <ArrowRight size={16} className="ml-auto text-gray-300" />
-          </Link>
-          <Link
-            href="/events"
-            className="bg-white text-gray-800 rounded-2xl p-5 flex items-center gap-3 hover:bg-gray-50 transition-colors shadow-sm border border-gray-100"
-          >
-            <CalendarDays size={24} className="text-[#1f7a00]" />
-            <div>
-              <div className="font-semibold">日程調整</div>
-              <div className="text-gray-400 text-sm">イベント確認</div>
-            </div>
-            <ArrowRight size={16} className="ml-auto text-gray-300" />
-          </Link>
-          <Link
-            href="/ai-chat"
-            className="bg-gradient-to-br from-accel-primary to-accel-primary text-white rounded-2xl p-5 flex items-center gap-3 hover:from-accel-primary hover:to-accel-active transition-colors shadow-sm"
-          >
-            <Sparkles size={24} />
-            <div>
-              <div className="font-semibold">AI</div>
-              <div className="text-white/70 text-sm">アシスタント</div>
-            </div>
-            <ArrowRight size={16} className="ml-auto opacity-70" />
-          </Link>
-        </div>
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent messages */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <MessageSquare size={16} className="text-[#1f7a00]" />
-                最新の投稿
-              </h2>
-              <Link href="/chat" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
-                もっと見る <ArrowRight size={13} />
-              </Link>
-            </div>
+          {/* ④ 新規投稿 */}
+          <Panel icon={<MessageSquare size={20} />} title="新規の投稿" href="/chat" linkLabel="チャットへ">
             {loading ? (
-              <div className="p-5 space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-3 bg-gray-100 rounded w-1/4 mb-1.5" />
-                    <div className="h-4 bg-gray-100 rounded w-3/4" />
-                  </div>
-                ))}
-              </div>
+              <SkeletonRows />
             ) : recentMessages.length === 0 ? (
-              <div className="p-10 text-center text-gray-400 text-sm">投稿がありません</div>
+              <EmptyNote>投稿がありません。</EmptyNote>
             ) : (
-              <ul className="divide-y divide-gray-50">
+              <ul className="divide-y divide-gray-50 border-t border-gray-50">
                 {recentMessages.map((msg) => (
-                  <li key={msg.id} className="px-5 py-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-gray-800 text-sm">{msg.user_name}</span>
-                      <span className="text-gray-300 text-xs">·</span>
-                      <span className="flex items-center gap-1 text-xs text-gray-400">
-                        <Hash size={10} />
+                  <li key={msg.id} className="px-6 py-4">
+                    <div className="flex items-center gap-2.5 mb-1.5">
+                      <Avatar
+                        src={msg.avatar_url ?? null}
+                        name={msg.user_name}
+                        size={32}
+                        className="flex-shrink-0"
+                      />
+                      <span className="font-bold text-gray-900">{msg.user_name}</span>
+                      <span className="inline-flex items-center gap-0.5 text-sm text-gray-400">
+                        <Hash size={13} />
                         {channelMap[msg.channel_id] ?? ''}
                       </span>
-                      <span className="text-gray-300 text-xs ml-auto">
+                      <span className="text-sm text-gray-400 ml-auto flex-shrink-0">
                         {format(new Date(msg.created_at), 'M/d HH:mm', { locale: ja })}
                       </span>
                     </div>
-                    <p className="text-gray-600 text-sm line-clamp-2">{msg.content || '(添付ファイル)'}</p>
+                    <p className="text-gray-600 line-clamp-2 pl-[42px]">
+                      {msg.content || '(添付ファイル)'}
+                    </p>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </Panel>
 
-          {/* Recent videos */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Video size={16} className="text-[#1f7a00]" />
-                最新の動画
-              </h2>
-              <Link href="/videos" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
-                もっと見る <ArrowRight size={13} />
-              </Link>
-            </div>
+          {/* ⑤ 最新動画 */}
+          <Panel icon={<Video size={20} />} title="最新の動画" href="/videos" linkLabel="動画ライブラリ">
             {loading ? (
-              <div className="p-5 space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse flex gap-3">
-                    <div className="w-20 h-12 bg-gray-100 rounded-lg flex-shrink-0" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-100 rounded w-3/4 mb-1.5" />
-                      <div className="h-3 bg-gray-100 rounded w-1/3" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <SkeletonRows />
             ) : recentVideos.length === 0 ? (
-              <div className="p-10 text-center text-gray-400 text-sm">動画がありません</div>
+              <EmptyNote>動画がありません。</EmptyNote>
             ) : (
-              <ul className="divide-y divide-gray-50">
+              <ul className="divide-y divide-gray-50 border-t border-gray-50">
                 {recentVideos.map((video) => {
                   const thumb = getThumbnail(video.pictures)
                   return (
-                    <li key={video.uri} className="px-5 py-4">
-                      <Link href="/videos" className="flex gap-3 items-center hover:opacity-80 transition-opacity">
-                        <div className="w-20 h-12 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative">
+                    <li key={video.uri}>
+                      <Link
+                        href="/videos"
+                        className="flex gap-4 px-6 py-4 hover:bg-surface-muted transition-colors"
+                      >
+                        <div className="w-28 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 relative">
                           {thumb && (
-                            <Image src={thumb} alt={video.name} fill className="object-cover" />
+                            // Vimeo のサムネイルはドメインが変わることがあるため img で描く
+                            <img src={thumb} alt="" className="w-full h-full object-cover" />
                           )}
-                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[14px] px-1 rounded font-mono">
+                          <span className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 rounded font-mono">
                             {formatDuration(video.duration)}
-                          </div>
+                          </span>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-relaxed">{video.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-gray-900 line-clamp-2 leading-snug">{video.name}</p>
+                          <p className="text-sm text-gray-400 mt-1">
                             {format(new Date(video.created_time), 'yyyy/M/d', { locale: ja })}
                           </p>
                         </div>
@@ -438,53 +639,8 @@ export default function DashboardPage() {
                 })}
               </ul>
             )}
-          </div>
+          </Panel>
         </div>
-
-        {/* Article categories */}
-        {(loading || articleCategories.length > 0) && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mt-6">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <BookOpen size={16} className="text-[#1f7a00]" />
-                ナレッジベース
-              </h2>
-              <Link href="/articles" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
-                すべて見る <ArrowRight size={13} />
-              </Link>
-            </div>
-            {loading ? (
-              <div className="divide-y divide-gray-50">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="px-5 py-3.5 animate-pulse flex items-center gap-3">
-                    <div className="w-3 h-3 bg-gray-100 rounded-full" />
-                    <div className="h-3.5 bg-gray-100 rounded w-1/3" />
-                    <div className="h-3 bg-gray-100 rounded w-10 ml-auto" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <ul className="divide-y divide-gray-50">
-                {articleCategories.map((cat) => (
-                  <li key={cat.id}>
-                    <Link
-                      href={`/articles?category=${cat.id}`}
-                      className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors group"
-                    >
-                      <span
-                        className="w-3 h-3 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: cat.color }}
-                      />
-                      <span className="font-medium text-gray-800 text-sm flex-1">{cat.name}</span>
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{cat.count}件</span>
-                      <ChevronRight size={15} className="text-gray-300 flex-shrink-0 group-hover:text-gray-400 transition-colors" />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
       </main>
     </div>
   )

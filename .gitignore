@@ -19,3 +19,8 @@ node_modules/
 /scripts/fix-vercel-key.sh
 /scripts/import-old-*.sql
 /scripts/migrate-old-*.sql
+
+# ビルド確認用の一時ファイル
+tsconfig.tsbuildinfo
+.build-check.tgz
+*.tar.gz
