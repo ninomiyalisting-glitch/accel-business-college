@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, Plus, Clock, CheckCircle2, ChevronRight } from 'lucide-react'
+import { CalendarDays, Plus, Clock, CheckCircle2, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -88,27 +88,17 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-screen bg-[#f7faf2]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">ダッシュボード</span>
-          </Link>
-          <div className="w-px h-5 bg-gray-200" />
-          <CalendarDays size={17} className="text-[#1f7a00]" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1">日程調整</h1>
-          {myName && (
-            <button
-              onClick={() => router.push('/events/new')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
-            >
-              <Plus size={13} /> イベントを作成
-            </button>
-          )}
+      {/* 見出しと戻るリンクは共通ヘッダー（AppHeader）が出す。
+          ここには固有の操作だけを置く */}
+      {myName && (
+        <div className="max-w-content mx-auto px-4 pt-6">
+          <button onClick={() => router.push('/events/new')} className="btn-primary">
+            <Plus size={18} /> イベントを作成
+          </button>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-bottom-nav space-y-3">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav space-y-3">
         {!myName && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
             Slackログイン後にイベントを作成できます
@@ -141,19 +131,19 @@ export default function EventsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     {ev.confirmed_date ? (
-                      <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
+                      <span className="flex items-center gap-1 text-[14px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">
                         <CheckCircle2 size={10} /> 日程確定
                       </span>
                     ) : (
-                      <span className="text-[10px] px-2 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium">
+                      <span className="text-[14px] px-2 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium">
                         回答受付中
                       </span>
                     )}
                     {ev.deadline && new Date(ev.deadline) < new Date() && !ev.confirmed_date && (
-                      <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-500 rounded-full font-medium">締切済み</span>
+                      <span className="text-[14px] px-2 py-0.5 bg-red-50 text-red-500 rounded-full font-medium">締切済み</span>
                     )}
                   </div>
-                  <h2 className="font-semibold text-gray-900 text-sm leading-snug truncate">{ev.title}</h2>
+                  <h2 className="font-semibold text-gray-900 text-sm leading-relaxed truncate">{ev.title}</h2>
                   <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
                     <span>作成者: {ev.created_by}</span>
                     <span>{ev.response_count}人回答</span>
@@ -177,13 +167,13 @@ export default function EventsPage() {
                         const base = format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })
                         const label = hasTime && d.end_time ? `${base}〜${format(new Date(d.end_time), 'HH:mm')}` : base
                         return (
-                          <span key={d.id} className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
+                          <span key={d.id} className="text-[14px] px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">
                             {label}
                           </span>
                         )
                       })}
                       {(ev.dates ?? []).length > 3 && (
-                        <span className="text-[11px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                        <span className="text-[14px] px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">
                           他{(ev.dates ?? []).length - 3}件
                         </span>
                       )}

@@ -1,14 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Hash, User, Settings, Video, MessageSquare, Shield, LayoutDashboard, ArrowUpDown, CalendarDays, Sparkles } from 'lucide-react'
+import { Hash, User, Settings, ArrowUpDown } from 'lucide-react'
 import { Channel, SlackUser } from '@/types'
 import { supabase } from '@/lib/supabase'
 
-const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
 const SORT_KEY = 'abc_channelSort'
 
 type SortOrder = 'default' | 'activity' | 'latest' | 'alpha'
@@ -42,7 +39,6 @@ export default function Sidebar({
   slackUser,
   onUserNameClick,
 }: Props) {
-  const pathname = usePathname()
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
   const [channelStats, setChannelStats] = useState<Record<string, ChannelStats>>({})
   const [statsLoaded, setStatsLoaded] = useState(false)
@@ -117,38 +113,11 @@ export default function Sidebar({
   }, [channels, sortOrder, channelStats])
 
   return (
-    <div className="flex flex-col h-full bg-[#f7faf2] text-gray-800 w-64 flex-shrink-0 border-r border-gray-200">
-      {/* ワークスペース名 */}
-      <div className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-200">
-        <Image src="/icon-192x192.png" alt="ロゴ" width={28} height={28} className="rounded-lg flex-shrink-0" />
-        <span className="font-bold text-gray-900 text-[15px] truncate leading-tight">
-          アクセルビジネスカレッジ
-        </span>
-      </div>
-
-      {/* ナビゲーション */}
-      <div className="px-3 py-2 border-b border-gray-200 space-y-0.5">
-        <Link href="/dashboard" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/dashboard' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-          <LayoutDashboard size={15} /> ダッシュボード
-        </Link>
-        <Link href="/chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/chat' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-          <MessageSquare size={15} /> チャット
-        </Link>
-        <Link href="/videos" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/videos' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-          <Video size={15} /> 動画ライブラリ
-        </Link>
-        <Link href="/events" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/events' || pathname.startsWith('/events/') ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-          <CalendarDays size={15} /> 日程調整
-        </Link>
-        <Link href="/ai-chat" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/ai-chat' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-          <Sparkles size={15} /> AIアシスタント
-        </Link>
-        {slackUser?.slack_user_id === ADMIN_SLACK_USER_ID && (
-          <Link href="/admin" className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${pathname === '/admin' ? 'bg-[#1f7a00] text-white font-semibold' : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'}`}>
-            <Shield size={15} /> 管理画面
-          </Link>
-        )}
-      </div>
+    <div className="flex flex-col h-full bg-[#f7faf2] text-gray-800 w-full md:w-64 flex-shrink-0 border-r border-gray-200">
+      {/* ナビゲーションの枠は撤去した。
+          サイト名・ダッシュボード・動画・日程調整・チャットは共通ヘッダーと
+          重複し、AI と管理画面もそれぞれヘッダーと設定に移したため。
+          ここはチャンネル一覧から始まる。 */}
 
       {/* チャンネルリスト */}
       <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
@@ -216,7 +185,7 @@ export default function Sidebar({
                     <span className="truncate flex-1">{channel.name}</span>
                     {/* 投稿数バッジ（activity sort時のみ） */}
                     {sortOrder === 'activity' && stats?.count7d > 0 && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                      <span className={`text-[14px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
                         isActive ? 'bg-white/20 text-white' : 'bg-[#1f7a00]/10 text-[#1f7a00]'
                       }`}>
                         {stats.count7d}

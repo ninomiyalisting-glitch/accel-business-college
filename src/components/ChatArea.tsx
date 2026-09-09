@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Hash, Menu, Users, Search, Sparkles } from 'lucide-react'
+import { Hash, Users, ArrowLeft } from 'lucide-react'
 import { Channel, Message, ReactionsMap, CustomEmojis } from '@/types'
 import { MemberInfo } from './MemberPopup'
 import MessageList from './MessageList'
@@ -17,7 +16,8 @@ interface Props {
   channel: Channel
   messages: Message[]
   onSendMessage: (content: string, threadTs?: string) => Promise<void>
-  onMenuClick: () => void
+  /** スマホでチャンネル一覧に戻る */
+  onBackToList: () => void
   userName: string
   currentSlackUserId?: string | null
   memberCount?: number
@@ -39,7 +39,7 @@ export default function ChatArea({
   channel,
   messages,
   onSendMessage,
-  onMenuClick,
+  onBackToList,
   userName,
   currentSlackUserId,
   memberCount,
@@ -57,8 +57,15 @@ export default function ChatArea({
   onSelectChannelByName,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false)
+
+  // 共通ヘッダーの検索ボタンから開く。
+  // ヘッダーは layout にあり props を渡せないためイベントで受ける。
+  useEffect(() => {
+    const open = () => setSearchOpen(true)
+    window.addEventListener('abc:open-chat-search', open)
+    return () => window.removeEventListener('abc:open-chat-search', open)
+  }, [])
   const [replyTo, setReplyTo] = useState<Message | null>(null)
-  const router = useRouter()
 
   // チャンネル切り替え時に返信モード解除
   useEffect(() => {
@@ -77,56 +84,30 @@ export default function ChatArea({
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
       {/* ヘッダー: モバイルはfixed固定、PCはstickyでレイアウト内に留まる */}
-      <div className="fixed top-0 left-0 right-0 z-50 md:sticky md:left-auto md:right-auto md:z-10 flex items-center justify-between px-4 bg-[#1a1d23] h-14 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* モバイル用メニューボタン: 常時表示 */}
-          <button
-            onClick={onMenuClick}
-            className="md:hidden p-2 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors flex-shrink-0"
-          >
-            <Menu size={18} className="text-white" />
-          </button>
+      {/* チャンネル名の帯（スマホのみ）。
+          PC はサイドバーで現在のチャンネルが分かるので出さない。
+          左端は「←」でチャンネル一覧へ戻る。Slack と同じ二画面の作り。
+          AIナビと検索は共通ヘッダーに移した。 */}
+      <div className="md:hidden flex items-center gap-2 px-2 bg-white border-b border-gray-200 h-14 flex-shrink-0">
+        <button
+          onClick={onBackToList}
+          aria-label="チャンネル一覧に戻る"
+          className="w-11 h-11 rounded-xl flex items-center justify-center text-accel-dark hover:bg-accel-lightest active:bg-accel-lightest transition-colors flex-shrink-0"
+        >
+          <ArrowLeft size={24} />
+        </button>
 
-          <div className="flex items-center gap-2 min-w-0">
-            <Hash size={18} className="text-white/60 flex-shrink-0" />
-            <h1 className="font-bold text-white text-[15px] truncate">{channel.name}</h1>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <Hash size={18} className="text-accel-active flex-shrink-0" />
+          <h1 className="font-bold text-accel-dark text-[17px] truncate">{channel.name}</h1>
+        </div>
+
+        {memberCount !== undefined && (
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 flex-shrink-0 pr-1">
+            <Users size={16} />
+            <span>{memberCount}</span>
           </div>
-
-          {channel.description && (
-            <>
-              <div className="w-px h-5 bg-white/20 hidden sm:block flex-shrink-0" />
-              <span className="text-sm text-white/50 hidden sm:block truncate max-w-xs">
-                {channel.description}
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* 右側: AIナビ・検索ボタン・メンバー数 */}
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          {memberCount !== undefined && (
-            <div className="flex items-center gap-1.5 text-sm text-white/60 mr-2">
-              <Users size={15} />
-              <span>{memberCount}</span>
-            </div>
-          )}
-          <button
-            onClick={() => router.push('/ai-chat')}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            title="AIアシスタント"
-          >
-            <Sparkles size={16} />
-            <span className="text-[9px] font-medium leading-none">AIナビ</span>
-          </button>
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            title="検索 (Ctrl+K)"
-          >
-            <Search size={16} />
-            <span className="text-[9px] font-medium leading-none">検索</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* 検索パネル */}
@@ -142,8 +123,6 @@ export default function ChatArea({
         />
       )}
 
-      {/* モバイルのfixedヘッダー分のスペーサー（PCでは非表示） */}
-      <div className="h-14 flex-shrink-0 md:hidden" aria-hidden="true" />
 
       {/* メッセージ一覧 */}
       <MessageList

@@ -111,12 +111,12 @@ function RelatedCard({ video, folderId }: { video: VimeoVideo; folderId: string 
             <Play size={11} className="text-[#1f7a00] ml-0.5" fill="currentColor" />
           </div>
         </div>
-        <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded font-mono">
+        <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[14px] px-1 rounded font-mono">
           {formatDuration(video.duration)}
         </span>
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-gray-800 leading-snug line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
+        <p className="text-sm font-medium text-gray-800 leading-relaxed line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
           {video.name}
         </p>
         <p className="text-xs text-gray-400 mt-1">{formatDate(video.created_time)}</p>
@@ -208,10 +208,10 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
   const vimeoUrl = video.link ?? `https://vimeo.com/${videoId}`
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-gray-950 pb-bottom-nav">
       {/* Header */}
       <header className="bg-black/60 backdrop-blur sticky top-0 z-10 border-b border-white/10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-content mx-auto px-4 h-14 flex items-center gap-3">
           <Link
             href={backHref}
             className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors flex-shrink-0"
@@ -227,7 +227,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-content mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main column */}
         <div className="lg:col-span-2">
           {/* Player */}
@@ -267,7 +267,7 @@ export default function VideoDetailPage({ params }: { params: Promise<{ videoId:
 
           {/* Meta */}
           <div className="mt-5 space-y-3">
-            <h2 className="text-xl font-bold text-white leading-snug">{video.name}</h2>
+            <h2 className="text-xl font-bold text-white leading-relaxed">{video.name}</h2>
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/50">
               <span className="flex items-center gap-1.5">

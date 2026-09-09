@@ -177,7 +177,7 @@ export default function PracticePoints({ slackUserId }: { slackUserId: string })
                 className="flex-shrink-0 min-w-[7.5rem] bg-white rounded-2xl border border-accel-lightest px-4 py-3"
               >
                 <p className="text-xs text-gray-500">{s.year}年 合計</p>
-                <p className="text-xl font-bold text-accel-active leading-tight">
+                <p className="text-xl font-bold text-accel-active leading-relaxed">
                   {s.points}
                   <span className="text-sm font-semibold text-gray-500 ml-1">ポイント</span>
                 </p>
@@ -331,7 +331,7 @@ export default function PracticePoints({ slackUserId }: { slackUserId: string })
               <button
                 onClick={submit}
                 disabled={busy}
-                className="btn-lg flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 bg-accel-active hover:bg-accel-text text-white rounded-xl transition-colors disabled:opacity-60"
+                className="btn-primary flex-1 sm:flex-none disabled:opacity-60"
               >
                 {busy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                 {editingId ? '更新する' : '追加する'}
@@ -339,7 +339,7 @@ export default function PracticePoints({ slackUserId }: { slackUserId: string })
               <button
                 onClick={cancel}
                 disabled={busy}
-                className="btn-lg inline-flex items-center justify-center gap-1.5 px-5 bg-white border border-border-soft text-gray-600 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-60"
+                className="btn-secondary disabled:opacity-60"
               >
                 <X size={16} />
                 やめる
@@ -351,7 +351,7 @@ export default function PracticePoints({ slackUserId }: { slackUserId: string })
         {isOwner && !formOpen && (
           <button
             onClick={() => { setAdding(true); setError(null) }}
-            className="btn-lg mt-5 inline-flex items-center justify-center gap-2 px-6 bg-accel-active hover:bg-accel-text text-white rounded-xl transition-colors"
+            className="btn-primary mt-5"
           >
             <Plus size={16} />
             追加

@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { ArrowLeft, BookOpen, Plus, Search, User, X, Tag, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { BookOpen, Plus, Search, User, X, Tag, ChevronDown, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -307,35 +307,19 @@ function ArticlesContent() {
 
   return (
     <div className="min-h-screen bg-[#f7faf2]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">ダッシュボード</span>
+      {/* 見出しは共通ヘッダーが出す */}
+      {myName && (
+        <div className="max-w-content mx-auto px-4 pt-6 flex flex-wrap items-center gap-2.5">
+          <Link href="/articles/new" className="btn-primary">
+            <Plus size={18} /> 記事を書く
           </Link>
-          <div className="w-px h-5 bg-gray-200" />
-          <BookOpen size={17} className="text-[#1f7a00]" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1">ナレッジベース</h1>
-          {myName && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-lg text-xs font-medium transition-colors"
-              >
-                <Tag size={12} /> カテゴリー
-              </button>
-              <Link
-                href="/articles/new"
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
-              >
-                <Plus size={13} /> 記事を書く
-              </Link>
-            </div>
-          )}
+          <button onClick={() => setShowModal(true)} className="btn-secondary">
+            <Tag size={16} /> カテゴリー
+          </button>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -436,7 +420,7 @@ function ArticlesContent() {
                               className="w-full flex items-center gap-2 pl-6 pr-4 py-2.5 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cs.category.color }} />
-                              <span className="font-medium text-gray-700 text-[13px] flex-1 text-left">
+                              <span className="font-medium text-gray-700 text-[17px] flex-1 text-left">
                                 {cs.category.name}
                                 <span className="ml-1.5 font-normal text-gray-400 text-xs">({cs.articles.length})</span>
                               </span>
@@ -566,7 +550,7 @@ function ArticlesContent() {
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
-                <p className="text-[11px] text-gray-400 mt-1">親を指定すると小カテゴリーとして作成されます</p>
+                <p className="text-[14px] text-gray-400 mt-1">親を指定すると小カテゴリーとして作成されます</p>
               </div>
 
               <div>
@@ -608,7 +592,7 @@ function ArticlesContent() {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-400">プレビュー:</span>
                 <span
-                  className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full text-white"
+                  className="inline-block text-[14px] font-medium px-2.5 py-0.5 rounded-full text-white"
                   style={{ backgroundColor: newCatColor }}
                 >
                   {newCatName || 'カテゴリー名'}
@@ -677,7 +661,7 @@ function ArticlesContent() {
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                   </select>
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-[14px] text-gray-400 mt-1">
                     {hasChildren
                       ? 'このカテゴリーには小カテゴリーがあるため、親は変更できません'
                       : '親を指定すると小カテゴリーになります'}
@@ -723,7 +707,7 @@ function ArticlesContent() {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400">プレビュー:</span>
                   <span
-                    className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full text-white"
+                    className="inline-block text-[14px] font-medium px-2.5 py-0.5 rounded-full text-white"
                     style={{ backgroundColor: editColor }}
                   >
                     {editName || 'カテゴリー名'}

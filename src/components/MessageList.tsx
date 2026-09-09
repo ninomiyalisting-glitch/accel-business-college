@@ -367,7 +367,7 @@ function EmojiPicker({
         {/* Custom emojis */}
         {customList.length > 0 && (
           <div className="border-t border-gray-100 mt-2 pt-2">
-            <p className="text-[10px] text-gray-400 mb-1 px-1">カスタム絵文字</p>
+            <p className="text-[14px] text-gray-400 mb-1 px-1">カスタム絵文字</p>
             <div className="flex flex-wrap gap-0.5 max-h-28 overflow-y-auto">
               {customList.map(([name, url]) => (
                 <button
@@ -482,7 +482,7 @@ function ReactionUsersModal({
                     )}
                     <span className="flex-1 text-sm font-medium text-gray-800 truncate">{u}</span>
                     {isMe && (
-                      <span className="text-[10px] text-accel-active bg-accel-lightest px-1.5 py-0.5 rounded-full">あなた</span>
+                      <span className="text-[14px] text-accel-active bg-accel-lightest px-1.5 py-0.5 rounded-full">あなた</span>
                     )}
                   </li>
                 )
@@ -576,7 +576,7 @@ function ReactionChip({
         {showTip && users.length > 0 && (
           <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg whitespace-nowrap z-30 pointer-events-none">
             <div className="font-medium">{formatUserList(users)}</div>
-            <div className="text-gray-300 text-[10px] mt-0.5">タップで全員を表示</div>
+            <div className="text-gray-300 text-[14px] mt-0.5">タップで全員を表示</div>
             <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px w-2 h-2 bg-gray-900 rotate-45" />
           </div>
         )}
@@ -805,7 +805,7 @@ function MessageBubble({
         </div>
       )}
       {isContinuation && (
-        <div className="text-[10px] text-gray-400 mb-1">{formatTime(msg.created_at)}</div>
+        <div className="text-[14px] text-gray-400 mb-1">{formatTime(msg.created_at)}</div>
       )}
 
       {/* Row 2: メッセージ本文 (全幅・左余白なし) */}
@@ -816,7 +816,7 @@ function MessageBubble({
             onChange={(e) => setEditContent(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Escape') setIsEditing(false) }}
             rows={Math.max(2, editContent.split('\n').length)}
-            className="w-full text-[15px] text-gray-800 border border-accel-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accel-light resize-none"
+            className="w-full text-[17px] text-gray-800 border border-accel-light rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accel-light resize-none"
             autoFocus
           />
           <div className="flex gap-2 mt-1.5 text-sm">
@@ -838,7 +838,7 @@ function MessageBubble({
       ) : (
         <div className="w-full">
           {msg.content && (
-            <p className="text-[15px] text-gray-800 leading-relaxed break-words whitespace-pre-wrap">
+            <p className="text-[17px] text-gray-800 leading-relaxed break-words whitespace-pre-wrap">
               {renderContent(msg.content, customEmojis)}
             </p>
           )}
@@ -943,7 +943,7 @@ function MessageBubble({
                     className="w-5 h-5 rounded-md border border-white object-cover"
                   />
                 ) : (
-                  <div key={name} className={`w-5 h-5 rounded-md border border-white flex items-center justify-center text-[10px] text-white font-bold ${getAvatarColor(name)}`}>
+                  <div key={name} className={`w-5 h-5 rounded-md border border-white flex items-center justify-center text-[14px] text-white font-bold ${getAvatarColor(name)}`}>
                     {name.charAt(0).toUpperCase()}
                   </div>
                 )
@@ -952,10 +952,10 @@ function MessageBubble({
             <span className="text-xs font-bold text-accel-active group-hover/thread:underline">
               {replyCount}件の返信
             </span>
-            <span className="text-[11px] text-gray-500">
+            <span className="text-[14px] text-gray-500">
               最終返信 {formatTime(threadReplies![threadReplies!.length - 1].created_at)}
             </span>
-            <span className="text-[11px] text-gray-400">{expanded ? '閉じる ▲' : 'スレッドを開く ▼'}</span>
+            <span className="text-[14px] text-gray-400">{expanded ? '閉じる ▲' : 'スレッドを開く ▼'}</span>
           </button>
 
           {expanded && (

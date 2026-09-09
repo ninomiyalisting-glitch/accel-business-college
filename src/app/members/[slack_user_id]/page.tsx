@@ -141,13 +141,13 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
     <div className="min-h-screen bg-[#f7faf2]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/members" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">メンバー一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <span className="font-bold text-gray-900 text-[15px] truncate">{user.display_name}</span>
+          <span className="font-bold text-gray-900 text-[17px] truncate">{user.display_name}</span>
           {isOwnProfile && (
             <Link
               href="/members/edit"
@@ -160,7 +160,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 pt-6 pb-bottom-nav space-y-4">
+      <main className="max-w-prose mx-auto px-4 pt-6 pb-bottom-nav space-y-4">
         {/* Hero card */}
         <div className="bg-white rounded-3xl border border-accel-lightest shadow-sm overflow-hidden">
           <div className="h-28 bg-gradient-to-br from-accel-light/60 via-accel-lightest to-white" />

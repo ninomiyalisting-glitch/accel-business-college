@@ -33,7 +33,11 @@
   select {
     min-height: 48px;
     font-family: inherit;
-    font-size: 16px;
+    /* iPhone は 16px 未満の入力欄にフォーカスすると画面を勝手にズームする。
+       ズームすると画面がずれ、ヘッダーのボタンが押しにくくなる。
+       ユーティリティクラスに負けないよう !important で固定する。
+       （大きくするのは可。小さくしないことが目的） */
+    font-size: max(16px, 1rem) !important;
     line-height: 1.8;
   }
 
@@ -57,6 +61,8 @@
   .btn-lg {
     min-height: 48px;
   }
+
+
 }
 
 
@@ -78,8 +84,74 @@
      Android: calc(5rem + 0) = 80px  / iPhone X+: calc(5rem + 34px) = 114px
      BottomNav を持つ全ページの <main> および <body> に適用する */
   .pb-bottom-nav {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
   }
+
+  /* チャット画面の高さ。
+     この画面は h-full で親の高さを使う作りなので、共通ヘッダーを
+     置いた分と、下部フッターの分を差し引く必要がある。
+     引かないと画面外にはみ出し、逆に body の下余白（pb-bottom-nav）が
+     残ると PC でフッターが無いのに空白ができる。
+
+     ヘッダー   … 64px + セーフエリア（見出し帯はチャットでは出ない）
+     フッター   … 64px + セーフエリア（スマホのみ）
+  */
+  /* 引く内訳
+       ヘッダー … 64px + セーフエリア上（ヘッダーが padding で確保している分）
+       フッター … 64px + セーフエリア下（スマホのみ）
+
+     100dvh 自体はセーフエリアを含む画面全体の高さなので、
+     「ヘッダーとフッターが実際に占めている高さ」だけを引く。
+     ヘッダーは 64px に加えて safe-area-inset-top ぶんの padding を
+     持っているので、その分も引く必要がある。 */
+  .chat-shell {
+    height: calc(
+      100dvh
+      - 4rem - env(safe-area-inset-top)
+      - 4rem - env(safe-area-inset-bottom)
+    );
+  }
+
+  /* チャンネル名の帯（56px）は chat-shell の内側にあるので、
+     ここでは引かない。内側の flex が自動で配分する。 */
+
+  /* PC はフッターが無いので、その分を戻す */
+  @media (min-width: 1024px) {
+    .chat-shell {
+      height: calc(100dvh - 4rem - env(safe-area-inset-top));
+    }
+  }
+
+
+  /* PC は固定フッターを出さないので下の余白も戻す */
+  @media (min-width: 1024px) {
+    .pb-bottom-nav {
+      padding-bottom: 2rem;
+    }
+  }
+
+  /* ヘッダーのセーフエリア対応（iPhone のノッチ・ダイナミックアイランド）。
+
+     layout で viewportFit: "cover" と statusBarStyle: "black-translucent"
+     を指定しているため、コンテンツがステータスバーの下まで伸びる。
+     padding-top だけを足すと中身は下がるが、sticky の粘着位置は top:0 の
+     ままなので、スクロール中にヘッダー上端がステータスバーに重なり、
+     その部分のタップが OS に吸われて反応しなくなる。
+     （Android では safe-area が 0 なので再現しない）
+
+     padding で領域を確保し、内側の行は 64px を保つ。 */
+  .app-header-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* iPhone を横向きにしたときは左右にも切り欠きが出る */
+  @supports (padding: max(0px)) {
+    .app-header-safe {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+
 }
 
 * {
@@ -170,3 +242,59 @@ textarea {
 .article-content img { max-width: 100%; border-radius: 0.75rem; margin: 0.75rem 0; }
 .article-content strong { font-weight: 700; }
 .article-content em { font-style: italic; }
+
+@layer components {
+/* ボタン。
+   明るいメイン色（#279300）に白文字で 3.99:1。
+   18px 以上の太字なら基準（3:1）を満たすので、.btn-primary は
+   必ず 18px を指定する。小さくすると読めなくなるので下げないこと。 */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0 1.75rem;
+  border-radius: 14px;
+  background-color: #279300;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(39, 147, 0, 0.25);
+  transition: background-color 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+.btn-primary:hover {
+  background-color: #1f7a00;
+  box-shadow: 0 4px 14px rgba(39, 147, 0, 0.32);
+}
+.btn-primary:active {
+  transform: translateY(1px);
+}
+.btn-primary:disabled {
+  background-color: #a8e67d;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* 副ボタン。白地に緑の枠 */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 52px;
+  padding: 0 1.5rem;
+  border-radius: 14px;
+  background-color: #ffffff;
+  border: 2px solid #279300;
+  color: #145200;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.5;
+  transition: background-color 0.15s;
+}
+.btn-secondary:hover {
+  background-color: #e8f5c9;
+}
+}

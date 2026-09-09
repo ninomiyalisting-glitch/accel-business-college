@@ -49,18 +49,34 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetchWithAuth(url, token)
+    let res = await fetchWithAuth(url, token)
+
+    // 429 は Slack のレート制限。一覧を開くと数十枚を同時に取りに行くため
+    // 起きやすい。Retry-After に従って 1 度だけやり直す。
+    if (res.status === 429) {
+      const wait = Math.min(Number(res.headers.get('retry-after') ?? 1), 5)
+      await new Promise((r) => setTimeout(r, wait * 1000))
+      res = await fetchWithAuth(url, token)
+    }
 
     const contentType = res.headers.get('content-type') ?? ''
 
     // If Slack returned HTML (login page), the scope/token is insufficient
     if (contentType.includes('text/html')) {
       console.error('[image-proxy] Slack returned HTML — files:read scope may be missing. URL:', url.slice(0, 80))
-      return new NextResponse('Unauthorized: Slack files:read scope required', { status: 403 })
+      return new NextResponse(
+        'Slack が画像ではなくログインページを返しました。Bot Token Scopes に files:read があるか確認してください。',
+        { status: 403, headers: { 'Cache-Control': 'public, max-age=60' } }
+      )
     }
 
     if (!res.ok) {
-      return new NextResponse('Upstream error', { status: res.status })
+      // 失敗をブラウザ側に短時間キャッシュさせる。
+      // これが無いとリロードのたびに数十枚を叩き直し、429 が続く。
+      return new NextResponse('Upstream error', {
+        status: res.status,
+        headers: { 'Cache-Control': 'public, max-age=60' },
+      })
     }
 
     const body = await res.arrayBuffer()
@@ -68,7 +84,7 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': contentType || 'application/octet-stream',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'public, max-age=2592000, immutable',
       },
     })
   } catch (e) {

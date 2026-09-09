@@ -388,7 +388,7 @@ function VideoRow({
           </div>
         )}
         {video.duration > 0 && (
-          <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded font-mono">
+          <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[14px] px-1 rounded font-mono">
             {formatDuration(video.duration)}
           </span>
         )}
@@ -518,7 +518,7 @@ export default function ManagePage() {
 
   // ── Sidebar ─────────────────────────────────────────────────────────────────
   const FolderSidebar = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col chat-shell">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">フォルダ</span>
         {isAdmin && (
@@ -561,7 +561,7 @@ export default function ManagePage() {
           </Link>
           <div className="w-px h-5 bg-white/20 flex-shrink-0" />
           <Shield size={16} className="text-amber-400 flex-shrink-0" />
-          <h1 className="font-bold text-white text-[15px]">Vimeo管理</h1>
+          <h1 className="font-bold text-white text-[17px]">Vimeo管理</h1>
 
           {/* Mobile sidebar toggle */}
           <button onClick={() => setSidebarOpen((v) => !v)} className="md:hidden ml-2 flex items-center gap-1 text-white/60 hover:text-white text-sm">

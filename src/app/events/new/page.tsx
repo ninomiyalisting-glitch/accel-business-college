@@ -171,13 +171,13 @@ export default function NewEventPage() {
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">イベント一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1">イベントを作成</h1>
+          <h1 className="font-bold text-gray-900 text-[17px] flex-1">イベントを作成</h1>
           <button
             onClick={handleSubmit}
             disabled={saving}
@@ -189,7 +189,7 @@ export default function NewEventPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
+      <main className="max-w-prose mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Basic info */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
           <div>
@@ -354,7 +354,7 @@ export default function NewEventPage() {
                 )}
               </div>
             ))}
-            <p className="text-[11px] text-gray-400 pl-6">開始時刻のみでもOK。終了時刻は任意です。</p>
+            <p className="text-[14px] text-gray-400 pl-6">開始時刻のみでもOK。終了時刻は任意です。</p>
           </div>
         </div>
 

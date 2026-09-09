@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { SlackUser } from '@/types'
@@ -370,51 +369,22 @@ export default function GalleryPage() {
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {selectedCategory ? (
-              <button
-                onClick={handleBack}
-                className="text-gray-500 hover:text-gray-700 transition-colors p-1 -ml-1"
-              >
-                <ArrowLeft size={20} />
-              </button>
-            ) : (
-              <Link href="/dashboard" className="text-gray-500 hover:text-gray-700 transition-colors p-1 -ml-1">
-                <ArrowLeft size={20} />
-              </Link>
-            )}
-            <span className="font-bold text-gray-900 text-[15px]">
-              {selectedCategory ? selectedCategory.name : 'ギャラリー'}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {slackUser?.avatar_url ? (
-              <Image
-                src={slackUser.avatar_url}
-                alt={userName}
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-[#279300]/10 flex items-center justify-center">
-                <span className="text-[#1f7a00] text-sm font-medium">{userName?.[0] ?? '?'}</span>
-              </div>
-            )}
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-              title="ログアウト"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+      {/* 見出し・アイコン・ログアウトは共通ヘッダーへ移した。
+          カテゴリーを開いているときだけ、その中での戻る操作を残す */}
+      {selectedCategory && (
+        <div className="max-w-content mx-auto px-4 pt-6 flex items-center gap-3">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-accel-active transition-colors"
+          >
+            <ArrowLeft size={20} />
+            <span className="text-sm font-medium">ギャラリーに戻る</span>
+          </button>
+          <span className="text-lg font-bold text-gray-900">{selectedCategory.name}</span>
         </div>
-      </header>
+      )}
 
-      <main className="max-w-5xl mx-auto px-4 py-6 pb-bottom-nav">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav">
         {!selectedCategory ? (
           /* Category Grid */
           <>
@@ -639,7 +609,7 @@ export default function GalleryPage() {
             </>
           )}
 
-          <div className="max-w-4xl max-h-[90vh] w-full mx-16 flex flex-col items-center">
+          <div className="max-w-content max-h-[90vh] w-full mx-16 flex flex-col items-center">
             <img
               src={modalPhoto.image_url}
               alt={modalPhoto.caption ?? ''}
@@ -654,7 +624,7 @@ export default function GalleryPage() {
                   <img src={modalPhoto.uploader_avatar} alt={modalPhoto.uploader_name} loading="lazy" decoding="async" width={20} height={20} className="w-5 h-5 rounded-full" />
                 ) : (
                   <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-white text-[10px]">{modalPhoto.uploader_name[0]}</span>
+                    <span className="text-white text-[14px]">{modalPhoto.uploader_name[0]}</span>
                   </div>
                 )}
                 <span className="text-white/60 text-xs">{modalPhoto.uploader_name}</span>

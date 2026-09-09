@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Bell, Volume2 } from 'lucide-react'
+
+import { useState, useEffect } from 'react'
+import { Bell, Volume2, Shield } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
+const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
 const SLACK_USER_KEY = 'abc_slackUser'
 
 interface UserSettings {
@@ -106,16 +108,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#f7faf2]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">ダッシュボード</span>
-          </Link>
-          <div className="w-px h-5 bg-gray-200" />
-          <h1 className="font-bold text-gray-900 text-[15px]">設定</h1>
-        </div>
-      </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* 通知 */}
@@ -129,7 +121,7 @@ export default function SettingsPage() {
               <li key={key} className="flex items-center justify-between px-5 py-4 gap-4">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 leading-snug">{desc}</p>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{desc}</p>
                 </div>
                 <Toggle enabled={settings[key]} onToggle={() => toggle(key)} />
               </li>
@@ -151,6 +143,26 @@ export default function SettingsPage() {
             <Toggle enabled={settings.sound_enabled} onToggle={() => toggle('sound_enabled')} />
           </div>
         </div>
+
+        {/* 管理画面。サイドバーから移設した。
+            使うのは管理者だけなので、設定の中に置く */}
+        {slackUserId === ADMIN_SLACK_USER_ID && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+              <Shield size={15} className="text-[#1f7a00]" />
+              <h2 className="font-semibold text-gray-900 text-sm">管理</h2>
+            </div>
+            <div className="px-5 py-4">
+              <Link href="/admin" className="btn-secondary w-full">
+                <Shield size={16} />
+                管理画面を開く
+              </Link>
+              <p className="mt-3 text-xs text-gray-500">
+                チャンネルの同期、過去ログの取得、スレッドとアバターの補完ができます。
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Save */}
         <button

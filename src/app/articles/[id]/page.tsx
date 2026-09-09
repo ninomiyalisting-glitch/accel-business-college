@@ -67,7 +67,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f7faf2]">
-        <div className="max-w-3xl mx-auto px-4 py-16 animate-pulse space-y-4">
+        <div className="max-w-prose mx-auto px-4 py-16 animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-2/3" />
           <div className="h-4 bg-gray-100 rounded w-1/3" />
           <div className="h-64 bg-gray-100 rounded-2xl" />
@@ -90,14 +90,14 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/articles" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">記事一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
           <BookOpen size={17} className="text-[#1f7a00]" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1 truncate">ナレッジベース</h1>
+          <h1 className="font-bold text-gray-900 text-[17px] flex-1 truncate">ナレッジベース</h1>
           {canEdit && (
             <div className="flex items-center gap-2">
               <Link
@@ -118,7 +118,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-6 pb-bottom-nav">
+      <main className="max-w-prose mx-auto px-4 py-6 pb-bottom-nav">
         <article className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           {article.cover_image_url && (
             <div className="relative h-52 sm:h-72 bg-gray-100">
@@ -128,13 +128,13 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
           <div className="p-6">
             {article.article_categories && (
               <span
-                className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full text-white mb-3"
+                className="inline-block text-[14px] font-medium px-2.5 py-0.5 rounded-full text-white mb-3"
                 style={{ backgroundColor: article.article_categories.color }}
               >
                 {article.article_categories.name}
               </span>
             )}
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight mb-4">{article.title}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 leading-relaxed mb-4">{article.title}</h1>
             <div className="flex items-center gap-2.5 pb-5 mb-5 border-b border-gray-100">
               {article.author_avatar ? (
                 <Image src={article.author_avatar} alt={article.author_name} width={28} height={28} className="rounded-full flex-shrink-0" />

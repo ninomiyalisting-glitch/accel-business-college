@@ -81,7 +81,7 @@ export default function MessageForm({ onSubmit, channelName, disabled, replyTo, 
       )}
       <form onSubmit={handleSubmit}>
         <div
-          className={`flex items-end gap-2 border rounded-xl px-4 py-2.5 bg-white transition-all duration-200 ${
+          className={`flex items-end gap-2.5 border-2 rounded-2xl px-4 py-3 bg-white transition-all duration-200 ${
             disabled
               ? 'border-gray-200 bg-gray-50'
               : replyTo
@@ -96,21 +96,22 @@ export default function MessageForm({ onSubmit, channelName, disabled, replyTo, 
             placeholder={placeholder}
             disabled={disabled || sending}
             rows={1}
-            className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-[15px] outline-none leading-relaxed min-h-[24px] max-h-[200px] overflow-y-auto disabled:cursor-not-allowed"
+            className="flex-1 bg-transparent text-gray-800 placeholder-gray-400 text-[17px] outline-none leading-relaxed min-h-[24px] max-h-[200px] overflow-y-auto disabled:cursor-not-allowed"
           />
           <button
             type="submit"
             disabled={!content.trim() || sending || disabled}
-            className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 ${
+            title="送信"
+            className={`flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-150 ${
               content.trim() && !sending && !disabled
-                ? 'bg-accel-active hover:bg-accel-text text-white'
+                ? 'bg-accel-primary hover:bg-accel-active text-white shadow-md hover:shadow-lg active:translate-y-px'
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
           >
-            <Send size={14} />
+            <Send size={20} />
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-1.5 px-1">
+        <p className="text-xs text-gray-500 mt-2 px-1">
           ボタンをクリックして送信　<kbd className="font-mono">Shift+Enter</kbd> で改行
         </p>
       </form>

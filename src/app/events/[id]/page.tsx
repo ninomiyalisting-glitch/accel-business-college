@@ -433,13 +433,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-content mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/events" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1 truncate">{event.title}</h1>
+          <h1 className="font-bold text-gray-900 text-[17px] flex-1 truncate">{event.title}</h1>
           <button
             onClick={copyUrl}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0"
@@ -461,7 +461,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-bottom-nav space-y-4">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* Cover image */}
         <div className="relative rounded-2xl overflow-hidden aspect-[16/6] shadow-sm border border-gray-100 bg-gray-100">
           {event.cover_image_url ? (
@@ -498,7 +498,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               <span className="text-xs px-2.5 py-1 bg-red-50 text-red-500 rounded-full font-medium">締切済み</span>
             )}
           </div>
-          <h2 className="text-xl font-bold text-gray-900 leading-snug">{event.title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 leading-relaxed">{event.title}</h2>
           {event.description && <p className="mt-2 text-sm text-gray-600 leading-relaxed">{event.description}</p>}
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-xs text-gray-400">
             <span>作成者: {event.created_by}</span>
@@ -547,7 +547,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                             <img src={av} alt={name} loading="lazy" decoding="async" width={24} height={24} className="w-6 h-6 rounded-full object-cover border border-gray-200" />
                           ) : (
                             <span
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-[14px] font-bold text-white"
                               style={{ background: avatarColor(name) }}
                               aria-hidden
                             >
@@ -583,9 +583,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   return (
                     <tr key={d.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="px-4 py-3 sticky left-0 bg-white hover:bg-gray-50/50 z-10">
-                        <div className="font-medium text-gray-900 text-xs leading-snug">{dateLabel}</div>
-                        {timeLabel && <div className="text-[11px] text-gray-400">{timeLabel}</div>}
-                        <div className={`mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded font-medium ${scoreColor(okCount, respondents.length)}`}>
+                        <div className="font-medium text-gray-900 text-xs leading-relaxed">{dateLabel}</div>
+                        {timeLabel && <div className="text-[14px] text-gray-400">{timeLabel}</div>}
+                        <div className={`mt-1 inline-block text-[14px] px-1.5 py-0.5 rounded font-medium ${scoreColor(okCount, respondents.length)}`}>
                           ○ {okCount}/{respondents.length}
                         </div>
                       </td>
@@ -1066,7 +1066,7 @@ function CoverEditorModal({
           {tab === 'url' && (
             <>
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">画像URL</label>
+                <label className="block text-[14px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">画像URL</label>
                 <input
                   type="url"
                   value={url}
@@ -1110,7 +1110,7 @@ function CoverEditorModal({
                 {aiInfo ? '別の画像を生成' : 'AI生成'}
               </button>
               {aiInfo && (
-                <div className="text-[11px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 space-y-0.5">
+                <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg px-3 py-2 space-y-0.5">
                   {aiInfo.keyword && <div>キーワード: <span className="text-gray-700 font-medium">{aiInfo.keyword}</span></div>}
                   {aiInfo.source && (
                     <div>

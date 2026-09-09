@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft, Lightbulb, Send, Image as ImageIcon, X, MessageCircle,
@@ -263,21 +262,13 @@ export default function IdeasPage() {
 
   return (
     <div className="min-h-screen bg-[#f7faf2]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">ダッシュボード</span>
-          </Link>
-          <div className="w-px h-5 bg-gray-200" />
-          <Lightbulb size={17} className="text-amber-500" />
-          <h1 className="font-bold text-gray-900 text-[15px] flex-1">ネタ帳</h1>
-        </div>
-        <div className="max-w-2xl mx-auto px-4 pb-2 overflow-x-auto">
+      {/* 見出しは共通ヘッダーが出す。絞り込みだけ本文側に残す */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-content mx-auto px-4 py-3 overflow-x-auto">
           <div className="flex gap-1.5 min-w-max">
             <button
               onClick={() => setFilter('all')}
-              className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors ${
+              className={`text-[14px] px-2.5 py-1 rounded-full font-medium transition-colors ${
                 filter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -287,7 +278,7 @@ export default function IdeasPage() {
               <button
                 key={c}
                 onClick={() => setFilter(c)}
-                className={`text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors whitespace-nowrap ${
+                className={`text-[14px] px-2.5 py-1 rounded-full font-medium transition-colors whitespace-nowrap ${
                   filter === c ? 'bg-gray-900 text-white' : `${CATEGORY_COLORS[c]} hover:opacity-80`
                 }`}
               >
@@ -296,9 +287,9 @@ export default function IdeasPage() {
             ))}
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-2xl mx-auto px-4 py-4 pb-bottom-nav space-y-4">
+      <main className="max-w-content mx-auto px-4 py-4 pb-bottom-nav space-y-4">
         {/* Post form */}
         {me ? (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -475,8 +466,8 @@ function IdeaCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-gray-900 text-sm truncate">{idea.author_name}</span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${catStyle}`}>{category}</span>
-            <span className="text-[11px] text-gray-400">{format(new Date(idea.created_at), 'M/d HH:mm', { locale: ja })}</span>
+            <span className={`text-[14px] px-2 py-0.5 rounded-full font-medium ${catStyle}`}>{category}</span>
+            <span className="text-[14px] text-gray-400">{format(new Date(idea.created_at), 'M/d HH:mm', { locale: ja })}</span>
             {canDelete && (
               <button
                 onClick={onDelete}
@@ -528,13 +519,13 @@ function IdeaCard({
             <div className="flex gap-1.5 flex-wrap mt-2">
               <button
                 onClick={onAiColumn}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
+                className="flex items-center gap-1 text-[14px] px-2 py-1 rounded-lg border border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors"
               >
                 <Sparkles size={11} /> AIでコラム化
               </button>
               <button
                 onClick={onAiScript}
-                className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
+                className="flex items-center gap-1 text-[14px] px-2 py-1 rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors"
               >
                 <Sparkles size={11} /> 動画台本を生成
               </button>
@@ -554,8 +545,8 @@ function IdeaCard({
                     <div className="flex-1 min-w-0">
                       <div className="bg-gray-50 rounded-xl px-3 py-1.5">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-semibold text-gray-800 text-[12px]">{c.author_name}</span>
-                          <span className="text-[10px] text-gray-400">{format(new Date(c.created_at), 'M/d HH:mm', { locale: ja })}</span>
+                          <span className="font-semibold text-gray-800 text-[17px]">{c.author_name}</span>
+                          <span className="text-[14px] text-gray-400">{format(new Date(c.created_at), 'M/d HH:mm', { locale: ja })}</span>
                           {canDeleteComment && (
                             <button
                               onClick={() => deleteComment(c.id)}
@@ -565,7 +556,7 @@ function IdeaCard({
                             </button>
                           )}
                         </div>
-                        <p className="text-[13px] text-gray-700 whitespace-pre-wrap mt-0.5">{c.content}</p>
+                        <p className="text-[17px] text-gray-700 whitespace-pre-wrap mt-0.5">{c.content}</p>
                       </div>
                     </div>
                   </div>
@@ -641,7 +632,7 @@ function AiResultModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-content max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center gap-2">
             {type === 'column' ? <FileText size={16} className="text-amber-600" /> : <Film size={16} className="text-rose-600" />}
@@ -662,7 +653,7 @@ function AiResultModal({
           ) : (
             <>
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">タイトル</label>
+                <label className="block text-[14px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">タイトル</label>
                 <input
                   type="text"
                   value={editTitle}

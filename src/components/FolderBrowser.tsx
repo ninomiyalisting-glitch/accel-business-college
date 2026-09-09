@@ -95,7 +95,7 @@ function FolderCard({ folder }: { folder: FolderInfo }) {
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
+        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
           {folder.name}
         </h3>
         {folder.description && (
@@ -140,7 +140,7 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
+        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
           {video.name}
         </h3>
         <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
@@ -150,12 +150,12 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
         {video.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {video.tags.slice(0, 3).map((t) => (
-              <span key={t.name} className="text-[11px] px-1.5 py-0.5 bg-[#e8f5c9] text-[#1f7a00] rounded-full">
+              <span key={t.name} className="text-[14px] px-1.5 py-0.5 bg-[#e8f5c9] text-[#1f7a00] rounded-full">
                 {t.name}
               </span>
             ))}
             {video.tags.length > 3 && (
-              <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full">
+              <span className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full">
                 +{video.tags.length - 3}
               </span>
             )}
@@ -171,13 +171,9 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
 export default function FolderBrowser({
   projectId,
   breadcrumb,
-  backHref,
-  backLabel,
 }: {
   projectId: string
   breadcrumb: BreadcrumbItem[]
-  backHref: string
-  backLabel: string
 }) {
   const [folders, setFolders] = useState<FolderInfo[]>([])
   const [videos, setVideos] = useState<VimeoVideo[]>([])
@@ -238,42 +234,33 @@ export default function FolderBrowser({
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ── Header ── */}
       <header className="bg-[#1f7a00] text-white flex-shrink-0 sticky top-0 z-10 shadow-md pt-[env(safe-area-inset-top)]">
-        <div className="flex items-center gap-3 px-4 h-14">
-          <Link href={backHref} className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors flex-shrink-0">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">{backLabel}</span>
-          </Link>
-          <div className="w-px h-5 bg-white/20 flex-shrink-0" />
-          <Video size={16} className="text-accel-lightest flex-shrink-0" />
-          <h1 className="font-bold text-white text-[15px] truncate">動画ライブラリ</h1>
-          <div className="ml-auto flex items-center gap-2 flex-shrink-0">
-            {!loading && (
-              <span className="text-white/50 text-sm">{totalCount}件</span>
-            )}
-            <Link href="/videos/manage"
-              className="flex items-center gap-1 px-2.5 py-1 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs text-white/70 hover:text-white transition-colors">
-              <Settings size={12} />
-              <span className="hidden sm:inline">管理</span>
-            </Link>
-          </div>
-        </div>
+        {/* 見出し（動画ライブラリ）と「管理」は共通ヘッダーの見出し帯にある。
+            戻るリンクもグローバルナビがあるので置かない。
+            ここに残すのは階層のパンくずと検索だけ。
 
-        {/* ── Breadcrumb ── */}
-        <div className="px-4 pb-2 flex items-center gap-1.5 text-sm text-white/70 overflow-x-auto whitespace-nowrap">
-          {breadcrumb.map((b, i) => (
-            <span key={i} className="flex items-center gap-1.5">
-              {i > 0 && <ChevronRight size={14} className="text-white/40 flex-shrink-0" />}
-              {b.href ? (
-                <Link href={b.href} className="hover:text-white hover:underline">{b.label}</Link>
-              ) : (
-                <span className="text-white font-medium">{b.label}</span>
-              )}
-            </span>
-          ))}
-        </div>
+            緑の帯は横幅いっぱいのままにし、中身だけ本文と同じ
+            max-w-content に揃える。 */}
+
+        {/* ── Breadcrumb ──
+            2 階層以上（フォルダを開いている）のときだけ出す。
+            トップでは親フォルダ名だけになり情報が無い */}
+        {breadcrumb.length > 1 && (
+          <div className="max-w-content mx-auto w-full px-4 pt-3 pb-1 flex items-center gap-1.5 text-sm text-white/70 overflow-x-auto whitespace-nowrap">
+            {breadcrumb.map((b, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                {i > 0 && <ChevronRight size={14} className="text-white/40 flex-shrink-0" />}
+                {b.href ? (
+                  <Link href={b.href} className="hover:text-white hover:underline">{b.label}</Link>
+                ) : (
+                  <span className="text-white font-medium">{b.label}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* ── Search ── */}
-        <div className="px-4 pb-3">
+        <div className="max-w-content mx-auto w-full px-4 py-3">
           <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
             <input
@@ -295,7 +282,7 @@ export default function FolderBrowser({
       {/* ── Tag filter ── */}
       {allTags.length > 0 && (
         <div className="bg-white border-b border-gray-100 shadow-sm">
-          <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto">
+          <div className="max-w-content mx-auto w-full flex items-center gap-2 px-4 py-2 overflow-x-auto">
             <Tag size={13} className="text-gray-400 flex-shrink-0" />
             <button
               onClick={() => setSelectedTag(null)}
@@ -321,7 +308,7 @@ export default function FolderBrowser({
       )}
 
       {/* ── Body ── */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6 pb-bottom-nav">
+      <main className="flex-1 max-w-content mx-auto w-full px-4 py-6 pb-bottom-nav">
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <div className="w-10 h-10 border-[3px] border-accel-lightest border-t-[#279300] rounded-full animate-spin" />

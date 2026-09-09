@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import AppHeader from "@/components/AppHeader";
 
 // 游ゴシックが無い端末（Android 等）のためのフォールバック。
 // 先読みすると游ゴシックのある Mac / Windows で無駄になるので preload は切る。
@@ -60,7 +61,10 @@ export default function RootLayout({
       <head>
         <meta name="theme-color" content="#1f7a00" />
       </head>
-      <body className="h-full pb-bottom-nav">
+      {/* 下余白は BodyPadding が付ける。body に直接付けると、
+          自前で高さを計算するチャット画面で二重になり空白ができる */}
+      <body className="h-full">
+        <AppHeader />
         {children}
         <BottomNav />
       </body>

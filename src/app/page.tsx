@@ -11,7 +11,7 @@ export default function LandingPage() {
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-2">
           <Image src="/icon-192x192.png" alt="ロゴ" width={32} height={32} className="rounded-lg" />
-          <span className="font-bold text-gray-900 text-[15px] hidden sm:block">アクセルビジネスカレッジ</span>
+          <span className="font-bold text-gray-900 text-[17px] hidden sm:block">アクセルビジネスカレッジ</span>
         </div>
         <a
           href="/api/auth/slack"
@@ -32,7 +32,7 @@ export default function LandingPage() {
             className="rounded-2xl shadow-lg mx-auto"
           />
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 leading-tight">
+        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 leading-relaxed">
           アクセルビジネスカレッジ
         </h1>
         <p className="text-xl sm:text-2xl text-[#1f7a00] font-medium mb-6">

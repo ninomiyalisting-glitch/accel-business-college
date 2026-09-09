@@ -141,16 +141,16 @@ export default function AiChatPage() {
   const isCurrentlyStreaming = streaming && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === ''
 
   return (
-    <div className="flex flex-col h-full bg-[#f7faf2]">
+    <div className="flex flex-col chat-shell bg-[#f7faf2]">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 z-10 flex-shrink-0">
-        <div className="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+        <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
             <ArrowLeft size={18} />
             <span className="text-sm hidden sm:inline">ダッシュボード</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <span className="font-bold text-gray-900 text-[15px] flex-1">AIアシスタント</span>
+          <span className="font-bold text-gray-900 text-[17px] flex-1">AIアシスタント</span>
           <span className="hidden sm:inline text-xs text-gray-400">Claude powered</span>
           {messages.length > 0 && (
             <button
@@ -165,9 +165,9 @@ export default function AiChatPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="max-w-prose mx-auto px-4 py-6">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-280px)] text-center">
+            <div className="flex flex-col items-center justify-center min-h-[calc(100dvh-280px)] text-center">
               <h2 className="text-lg font-bold text-gray-900 mb-1.5">AIアシスタント</h2>
               <p className="text-gray-500 text-sm mb-1">コミュニティのデータを参照して回答します</p>
               {myName && <p className="text-gray-400 text-xs mb-8">こんにちは、{myName}さん</p>}
@@ -202,7 +202,7 @@ export default function AiChatPage() {
 
       {/* Input area */}
       <div className="bg-white border-t border-gray-100 flex-shrink-0">
-        <div className="max-w-3xl mx-auto px-4 py-3">
+        <div className="max-w-prose mx-auto px-4 py-3">
           <div className="flex gap-2 items-end">
             <div className="flex-1">
               <textarea
@@ -234,7 +234,7 @@ export default function AiChatPage() {
               )}
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1.5 text-center">
+          <p className="text-[14px] text-gray-400 mt-1.5 text-center">
             このAIはコミュニティ内のデータを参照します
           </p>
         </div>

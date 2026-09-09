@@ -182,7 +182,7 @@ export default function AdminPage() {
   const hiddenCount = channels.filter((c) => c.is_hidden).length
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-bottom-nav">
       {/* Header */}
       <header className="bg-[#1f7a00] text-white px-4 h-14 flex items-center gap-3 shadow-md">
         <Link
@@ -194,10 +194,10 @@ export default function AdminPage() {
         </Link>
         <div className="w-px h-5 bg-white/20" />
         <Shield size={16} className="text-accel-lightest" />
-        <h1 className="font-bold text-white text-[15px]">管理画面 — チャンネル管理</h1>
+        <h1 className="font-bold text-white text-[17px]">管理画面 — チャンネル管理</h1>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="max-w-content mx-auto px-4 py-8">
         {/* Auth check */}
         {!slackUserId ? (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">

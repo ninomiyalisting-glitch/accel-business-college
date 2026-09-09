@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { MessageSquare, Video, Users, ArrowRight, Hash, LogOut, ImageIcon, CalendarDays, Sparkles, CheckCircle2, Clock, ChevronRight, BookOpen } from 'lucide-react'
+import { MessageSquare, Video, Users, ArrowRight, Hash, ImageIcon, CalendarDays, Sparkles, CheckCircle2, Clock, ChevronRight, BookOpen } from 'lucide-react'
 import { SlackUser, Message, Channel } from '@/types'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -172,40 +172,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f7faf2]">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <Image src="/icon-192x192.png" alt="ロゴ" width={28} height={28} className="rounded-lg" />
-            <span className="font-bold text-gray-900 text-[15px]">アクセルビジネスカレッジ</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/settings" title="設定" className="hover:opacity-80 transition-opacity">
-              {slackUser?.avatar_url ? (
-                <Image
-                  src={slackUser.avatar_url}
-                  alt={userName}
-                  width={32}
-                  height={32}
-                  className="rounded-full ring-2 ring-transparent hover:ring-[#279300]/30 transition-all"
-                />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-[#279300]/10 flex items-center justify-center hover:bg-[#279300]/20 transition-colors">
-                  <span className="text-[#1f7a00] text-sm font-medium">{userName?.[0] ?? '?'}</span>
-                </div>
-              )}
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-              title="ログアウト"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
-        </div>
-      </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 pb-bottom-nav">
+      <main className="max-w-content mx-auto px-4 py-8 pb-bottom-nav">
         {/* Welcome */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">
@@ -248,13 +216,13 @@ export default function DashboardPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             {ev.confirmed_date ? (
-                              <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium flex-shrink-0">
+                              <span className="flex items-center gap-1 text-[14px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full font-medium flex-shrink-0">
                                 <CheckCircle2 size={9} /> 確定
                               </span>
                             ) : isPast ? (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full font-medium flex-shrink-0">締切済み</span>
+                              <span className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full font-medium flex-shrink-0">締切済み</span>
                             ) : (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium flex-shrink-0">受付中</span>
+                              <span className="text-[14px] px-1.5 py-0.5 bg-accel-lightest text-accel-active rounded-full font-medium flex-shrink-0">受付中</span>
                             )}
                             <span className="font-medium text-gray-800 text-sm truncate">{ev.title}</span>
                           </div>
@@ -278,13 +246,13 @@ export default function DashboardPage() {
                                 const dt = new Date(d.date)
                                 const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0
                                 return (
-                                  <span key={d.id} className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">
+                                  <span key={d.id} className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">
                                     {format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })}
                                   </span>
                                 )
                               })}
                               {ev.dates.length > 3 && (
-                                <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full">
+                                <span className="text-[14px] px-1.5 py-0.5 bg-gray-100 text-gray-400 rounded-full">
                                   他{ev.dates.length - 3}件
                                 </span>
                               )}
@@ -454,12 +422,12 @@ export default function DashboardPage() {
                           {thumb && (
                             <Image src={thumb} alt={video.name} fill className="object-cover" />
                           )}
-                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded font-mono">
+                          <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[14px] px-1 rounded font-mono">
                             {formatDuration(video.duration)}
                           </div>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">{video.name}</p>
+                          <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-relaxed">{video.name}</p>
                           <p className="text-xs text-gray-400 mt-0.5">
                             {format(new Date(video.created_time), 'yyyy/M/d', { locale: ja })}
                           </p>

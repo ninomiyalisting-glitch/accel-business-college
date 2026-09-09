@@ -36,8 +36,6 @@ export default function FolderPage({ params }: { params: Promise<{ folderId: str
         { label: ROOT_FOLDER_NAME, href: '/videos' },
         { label: folderName },
       ]}
-      backHref="/videos"
-      backLabel="動画ライブラリ"
     />
   )
 }

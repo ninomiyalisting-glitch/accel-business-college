@@ -77,7 +77,7 @@ export default function MemberPopup({ member, onClose }: Props) {
         </div>
 
         <div className="px-6 pb-6 text-center space-y-2">
-          <h3 className="font-bold text-gray-900 text-base leading-snug break-words">{member.displayName}</h3>
+          <h3 className="font-bold text-gray-900 text-base leading-relaxed break-words">{member.displayName}</h3>
 
           {member.slackUserId && (
             <Link

@@ -11,3 +11,11 @@ node_modules/
 /accel-dash/
 .DS_Store
 .env*
+
+# 復旧・移送のための一時スクリプト。
+# DB のホスト名や手順が入るのでリポジトリには入れない。
+/scripts/set-db-url.py
+/scripts/set-slack-token.py
+/scripts/fix-vercel-key.sh
+/scripts/import-old-*.sql
+/scripts/migrate-old-*.sql

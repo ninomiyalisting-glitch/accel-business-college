@@ -96,7 +96,7 @@ export default function UserNameDialog({ onSubmit, currentChannel }: Props) {
           </div>
           <button
             type="submit"
-            className="w-full bg-accel-active hover:bg-accel-text text-white font-semibold py-3 px-6 rounded-xl transition-colors duration-200 shadow-md"
+            className="btn-primary w-full"
           >
             参加する
           </button>

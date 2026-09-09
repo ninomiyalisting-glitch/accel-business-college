@@ -19,6 +19,17 @@ const nextConfig: NextConfig = {
         hostname: 'avatars.slack-edge.com',
       },
       {
+        // Slackbot のアバターだけこのドメインから配信される。
+        // 未登録だと next/image が例外を投げ、ページ全体が落ちる
+        // （「This page couldn't load」になる）。
+        protocol: 'https',
+        hostname: 'a.slack-edge.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'files.slack.com',
+      },
+      {
         protocol: 'https',
         hostname: 'secure.gravatar.com',
       },

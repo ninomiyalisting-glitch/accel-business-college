@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Search, Users, Pencil, MapPin, Building2, ArrowUpDown } from 'lucide-react'
+import { Search, Users, Pencil, MapPin, Building2, ArrowUpDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 const SLACK_USER_KEY = 'abc_slackUser'
@@ -62,13 +62,16 @@ function MemberCard({ user, profile, stats }: { user: DBUser; profile?: MemberPr
 
   const inner = (
     <>
+      {/* next/image を使わない。未登録ドメイン（a.slack-edge.com 等）が
+          混ざると例外でページ全体が落ちるため。読み込み失敗は頭文字に差し替える */}
       {user.avatar_url && !avatarError ? (
         <div className="w-full aspect-square rounded-2xl overflow-hidden bg-accel-lightest/50">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={user.avatar_url}
-            alt={user.display_name}
-            width={256}
-            height={256}
+            alt=""
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
             onError={() => setAvatarError(true)}
           />
@@ -261,31 +264,17 @@ export default function MembersPage() {
 
   return (
     <div className="min-h-screen bg-[#f7faf2]">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-3">
-          <Link href="/dashboard" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
-            <ArrowLeft size={18} />
-            <span className="text-sm hidden sm:inline">ダッシュボード</span>
-          </Link>
-          <div className="w-px h-5 bg-gray-200" />
-          <Users size={17} className="text-[#1f7a00]" />
-          <h1 className="font-bold text-gray-900 text-[15px]">メンバー一覧</h1>
-          <div className="ml-auto flex items-center gap-2">
-            {!loading && <span className="text-sm text-gray-500">{users.length}人</span>}
-            {mySlackUserId && (
-              <button
-                onClick={() => router.push('/members/edit')}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1f7a00] hover:bg-[#145200] text-white rounded-lg text-xs font-medium transition-colors"
-              >
-                <Pencil size={12} />
-                プロフィールを編集
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+      {/* 見出しは共通ヘッダーが出す。ここは固有の操作と件数だけ */}
+      <div className="max-w-content mx-auto px-4 pt-6 flex flex-wrap items-center gap-3">
+        {mySlackUserId && (
+          <button onClick={() => router.push('/members/edit')} className="btn-primary">
+            <Pencil size={18} /> プロフィールを編集
+          </button>
+        )}
+        {!loading && <span className="text-sm text-gray-500">{users.length}人</span>}
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-6 pb-bottom-nav">
+      <main className="max-w-content mx-auto px-4 py-6 pb-bottom-nav">
         {/* 検索 + ソート */}
         <div className="flex gap-2 mb-6">
           <div className="relative flex-1">

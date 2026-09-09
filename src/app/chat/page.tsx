@@ -8,7 +8,6 @@ import Sidebar from '@/components/Sidebar'
 import ChatArea from '@/components/ChatArea'
 import UserNameDialog from '@/components/UserNameDialog'
 import { MemberInfo } from '@/components/MemberPopup'
-import { Menu } from 'lucide-react'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 const USER_NAME_KEY = 'abc_userName'
@@ -51,7 +50,6 @@ function ChatContent() {
   const [userBySlackId, setUserBySlackId] = useState<UserBySlackId>({})
   const [customEmojis, setCustomEmojis] = useState<CustomEmojis>({})
   const [showUserNameDialog, setShowUserNameDialog] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(false)
@@ -182,11 +180,14 @@ function ChatContent() {
       if (data && data.length > 0) {
         const visible = data.filter((c) => !c.is_hidden)
         setChannels(visible)
+        // URL に ?channel= が無いときは選択しない。
+        // スマホでは「チャンネル一覧」の画面になり、Slack と同じ二画面になる。
+        // PC はサイドバーが常に見えているので、下の効果で先頭を開く。
         const channelParam = searchParams.get('channel')
         const initial = channelParam
-          ? (visible.find((c) => c.name === channelParam) ?? visible[0])
-          : visible[0]
-        setSelectedChannel(initial ?? null)
+          ? (visible.find((c) => c.name === channelParam) ?? null)
+          : null
+        setSelectedChannel(initial)
       }
       setLoading(false)
     }
@@ -608,8 +609,23 @@ function ChatContent() {
 
   const handleSelectChannel = (channel: Channel) => {
     setSelectedChannel(channel)
-    setSidebarOpen(false)
     router.replace(`/chat?channel=${encodeURIComponent(channel.name)}`)
+  }
+
+  // PC は左にサイドバーが常に見えているので、何も選ばれていない状態は不自然。
+  // 画面が広いときだけ先頭チャンネルを開く。
+  // スマホは一覧のままにして、Slack と同じ二画面で使う。
+  useEffect(() => {
+    if (selectedChannel || channels.length === 0) return
+    if (typeof window === 'undefined') return
+    if (!window.matchMedia('(min-width: 768px)').matches) return
+    setSelectedChannel(channels[0])
+  }, [channels, selectedChannel])
+
+  /** スマホでチャンネル一覧に戻る */
+  const handleBackToList = () => {
+    setSelectedChannel(null)
+    router.replace('/chat')
   }
 
   const handleSelectChannelByName = (name: string) => {
@@ -645,7 +661,10 @@ function ChatContent() {
   }
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f7faf2]">
+    // 高さは「画面 − 共通ヘッダー − フッター」。
+    // h-full だと body の pb-bottom-nav と二重に効いて、
+    // PC でフッターが無いのに下に空白が残る。
+    <div className="flex chat-shell overflow-hidden bg-[#f7faf2]">
       {showUserNameDialog && (
         <UserNameDialog
           onSubmit={handleSetUserName}
@@ -653,18 +672,16 @@ function ChatContent() {
         />
       )}
 
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
+      {/* チャンネル一覧。
+          スマホはチャンネル未選択のとき全幅の一覧として見せる（Slack と同じ）。
+          チャンネルを選ぶと隠れ、「←」で戻ると再び出る。
+          PC は常に左に出したまま。 */}
       <div
         className={`
-          fixed md:relative inset-y-0 left-0 z-40 md:z-auto
-          transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+          md:relative md:z-auto md:w-64 md:translate-x-0
+          ${selectedChannel
+            ? 'hidden md:block'
+            : 'w-full md:w-64'}
         `}
       >
         <Sidebar
@@ -677,7 +694,9 @@ function ChatContent() {
         />
       </div>
 
-      <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white rounded-tl-xl overflow-hidden md:rounded-none">
+      <div className={`flex-1 flex flex-col min-w-0 min-h-0 bg-white overflow-hidden md:rounded-none ${
+        selectedChannel ? 'flex' : 'hidden md:flex'
+      }`}>
         {error ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center p-8">
@@ -696,7 +715,7 @@ function ChatContent() {
             channel={selectedChannel}
             messages={messages}
             onSendMessage={handleSendMessage}
-            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            onBackToList={handleBackToList}
             userName={userName}
             currentSlackUserId={slackUser?.slack_user_id ?? null}
             hasMore={hasMore}
@@ -713,16 +732,17 @@ function ChatContent() {
             onSelectChannelByName={handleSelectChannelByName}
           />
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="absolute top-4 left-4 md:hidden p-2 rounded-lg bg-gray-100"
-            >
-              <Menu size={20} className="text-gray-600" />
-            </button>
+          // スマホは左の一覧が全幅で出ているので、ここは PC 用の案内だけ
+          <div className="flex-1 hidden md:flex items-center justify-center">
             <div className="text-center text-gray-400">
-              <p className="text-lg">チャンネルがありません</p>
-              <p className="text-sm mt-1">Supabaseにチャンネルを追加してください</p>
+              {channels.length === 0 ? (
+                <>
+                  <p className="text-lg">チャンネルがありません</p>
+                  <p className="text-sm mt-1">管理画面から同期してください</p>
+                </>
+              ) : (
+                <p className="text-lg">チャンネルを選んでください</p>
+              )}
             </div>
           </div>
         )}

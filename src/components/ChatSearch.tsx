@@ -176,7 +176,7 @@ export default function ChatSearch({ channelMap, avatarMap, onClose, onSelectCha
                                 </span>
                               </>
                             )}
-                            <span className="ml-auto text-[11px] text-gray-400 flex-shrink-0">
+                            <span className="ml-auto text-[14px] text-gray-400 flex-shrink-0">
                               {format(new Date(result.created_at), 'M/d HH:mm', { locale: ja })}
                             </span>
                           </div>

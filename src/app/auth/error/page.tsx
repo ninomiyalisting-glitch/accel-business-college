@@ -32,7 +32,7 @@ function ErrorContent() {
         <p className="text-xs text-gray-400 mb-6 font-mono bg-gray-50 rounded px-2 py-1">{reason}</p>
         <a
           href="/"
-          className="inline-block bg-accel-active hover:bg-accel-text text-white font-semibold py-3 px-8 rounded-xl transition-colors"
+          className="btn-primary"
         >
           トップへ戻る
         </a>
