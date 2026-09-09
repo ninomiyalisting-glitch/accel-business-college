@@ -188,7 +188,7 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                 <CalendarDays size={16} className="text-[#1f7a00]" />
-                日程調整
+                イベント
               </h2>
               <Link href="/events" className="text-[#1f7a00] text-sm hover:underline flex items-center gap-1">
                 すべて見る <ArrowRight size={13} />

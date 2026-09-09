@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://accel-business-college.vercel.app'
     const eventUrl = `${baseUrl}/events/${body.event_id}`
 
-    let text = `📅 *新しい日程調整が作成されました*\n`
+    let text = `📅 *新しいイベントが作成されました*\n`
     text += `*${body.title}*\n`
     text += `作成者: ${body.created_by}　候補日: ${body.date_count}件\n`
     if (body.deadline) {

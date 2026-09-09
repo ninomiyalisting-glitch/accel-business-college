@@ -31,7 +31,7 @@ const NOTIFY_ITEMS: { key: keyof Omit<UserSettings, 'sound_enabled'>; label: str
   { key: 'notify_new_message', label: '新着メッセージ', desc: 'チャットに新しいメッセージが届いたとき' },
   { key: 'notify_mention', label: 'メンション', desc: '自分がメンションされたとき' },
   { key: 'notify_reaction', label: 'リアクション', desc: '自分の投稿にリアクションが付いたとき' },
-  { key: 'notify_event', label: 'イベント通知', desc: '新しい日程調整が作成されたとき' },
+  { key: 'notify_event', label: 'イベント通知', desc: '新しいイベントが作成されたとき' },
   { key: 'notify_new_member', label: '新メンバー参加', desc: '新しいメンバーがコミュニティに参加したとき' },
 ]
 

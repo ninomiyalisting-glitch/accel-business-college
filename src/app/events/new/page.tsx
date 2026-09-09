@@ -198,7 +198,7 @@ export default function NewEventPage() {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="例：5月勉強会の日程調整"
+              placeholder="例：5月度 勉強会"
               className="w-full text-sm text-gray-800 border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
             />
           </div>

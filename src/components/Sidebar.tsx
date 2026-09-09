@@ -115,7 +115,7 @@ export default function Sidebar({
   return (
     <div className="flex flex-col h-full bg-[#f7faf2] text-gray-800 w-full md:w-64 flex-shrink-0 border-r border-gray-200">
       {/* ナビゲーションの枠は撤去した。
-          サイト名・ダッシュボード・動画・日程調整・チャットは共通ヘッダーと
+          サイト名・ダッシュボード・動画・イベント・チャットは共通ヘッダーと
           重複し、AI と管理画面もそれぞれヘッダーと設定に移したため。
           ここはチャンネル一覧から始まる。 */}
 

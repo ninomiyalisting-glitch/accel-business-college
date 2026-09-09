@@ -56,7 +56,7 @@ const TITLES: { prefix: string; title: string; action?: { href: string; label: s
   { prefix: '/videos/manage', title: '動画の管理' },
   { prefix: '/videos', title: '動画ライブラリ', action: { href: '/videos/manage', label: '管理' } },
   { prefix: '/events/new', title: 'イベントの作成' },
-  { prefix: '/events', title: '日程調整' },
+  { prefix: '/events', title: 'イベント' },
   { prefix: '/members/edit', title: 'プロフィールの編集' },
   { prefix: '/members', title: 'メンバー' },
   { prefix: '/articles/new', title: '記事の作成' },

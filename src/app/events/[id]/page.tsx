@@ -159,16 +159,19 @@ function ResponseButtons({
   onChange: (dateId: string, res: ResponseType) => void
 }) {
   return (
-    <div className="flex gap-1.5">
+    <div className="flex gap-2">
       {RESPONSES.map((res) => (
         <button
           key={res}
           type="button"
           onClick={() => onChange(dateId, res)}
-          className={`w-10 h-10 rounded-xl text-base border transition-all ${
+          aria-label={res === '○' ? '参加できる' : res === '△' ? '未定' : '参加できない'}
+          // 40px だと押しづらく、記号も小さくて読み取りにくかった。
+          // 56px にして記号も 24px に上げる。
+          className={`w-14 h-14 rounded-2xl text-2xl leading-none border-2 transition-all active:scale-95 ${
             value === res
               ? RESPONSE_SELECTED[res]
-              : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+              : 'border-gray-200 text-gray-400 hover:border-accel-light hover:text-accel-active hover:bg-accel-lightest/50'
           }`}
         >
           {res}
@@ -204,6 +207,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   // Date edit modal
   const [showDateEditor, setShowDateEditor] = useState(false)
+  const [savingDate, setSavingDate] = useState(false)
+  const [confirmedInput, setConfirmedInput] = useState('')
 
   // Cover image edit
   const [showCoverEdit, setShowCoverEdit] = useState(false)
@@ -376,6 +381,32 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     await loadData()
   }
 
+  /**
+   * 開催日を保存する。null を渡すと取り消して調整中に戻る。
+   * 一覧の 3 分割（調整中 / 開催日決定 / 終了）はこの値で決まる。
+   * 誰でも変更できる（本人確認は localStorage なので厳密ではない）。
+   */
+  const saveConfirmedDate = async (iso: string | null) => {
+    if (savingDate) return
+    if (iso !== null && Number.isNaN(new Date(iso).getTime())) {
+      alert('日時が正しくありません')
+      return
+    }
+
+    setSavingDate(true)
+    const { error } = await supabase
+      .from('events')
+      .update({ confirmed_date: iso })
+      .eq('id', id)
+    setSavingDate(false)
+
+    if (error) {
+      alert(`開催日を保存できませんでした：${error.message}`)
+      return
+    }
+    setEvent((cur) => (cur ? { ...cur, confirmed_date: iso } : cur))
+  }
+
   const handleEventDelete = async () => {
     if (!confirm(`「${event?.title}」を削除しますか？\nこの操作は取り消せません。`)) return
     setDeleting(true)
@@ -515,6 +546,86 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             )}
           </div>
         </div>
+
+        {/* 開催日の設定。
+            これまで confirmed_date は表示するだけで、決める手段が無かった。
+            候補日から選ぶか、任意の日時を入れられるようにする。
+            誰でも変更できる（ログイン判定は localStorage なので厳密ではない）。 */}
+        {myName && (
+          <div className="bg-white rounded-2xl border border-accel-lightest shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+              <CalendarDays size={16} className="text-accel-active" />
+              <h3 className="font-bold text-gray-900">開催日</h3>
+              {event.confirmed_date && (
+                <span className="ml-auto text-sm font-bold text-accel-active">
+                  {format(new Date(event.confirmed_date), 'M月d日(E) HH:mm', { locale: ja })}
+                </span>
+              )}
+            </div>
+
+            <div className="p-5 space-y-4">
+              {dates.length > 0 && (
+                <div>
+                  <p className="text-sm font-bold text-gray-700 mb-2">候補日から選ぶ</p>
+                  <div className="flex flex-wrap gap-2">
+                    {dates.map((d) => {
+                      const dt = new Date(d.date)
+                      const hasTime = dt.getHours() !== 0 || dt.getMinutes() !== 0
+                      const label = format(dt, hasTime ? 'M/d(E) HH:mm' : 'M/d(E)', { locale: ja })
+                      const isSet = event.confirmed_date === d.date
+                      return (
+                        <button
+                          key={d.id}
+                          onClick={() => saveConfirmedDate(d.date)}
+                          disabled={savingDate}
+                          className={`px-4 py-2.5 rounded-xl text-sm font-bold border-2 transition-colors disabled:opacity-60 ${
+                            isSet
+                              ? 'bg-accel-active border-accel-active text-white'
+                              : 'bg-white border-border-soft text-gray-700 hover:bg-accel-lightest hover:border-accel-light'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="confirmed-input" className="block text-sm font-bold text-gray-700 mb-2">
+                  日時を直接入力
+                </label>
+                <div className="flex flex-wrap gap-2.5">
+                  <input
+                    id="confirmed-input"
+                    type="datetime-local"
+                    value={confirmedInput}
+                    onChange={(e) => setConfirmedInput(e.target.value)}
+                    className="flex-1 min-w-[16rem] px-4 py-3 bg-white border-2 border-border-soft rounded-xl focus:outline-none focus:border-accel-primary"
+                  />
+                  <button
+                    onClick={() => saveConfirmedDate(new Date(confirmedInput).toISOString())}
+                    disabled={savingDate || !confirmedInput}
+                    className="btn-primary disabled:opacity-60"
+                  >
+                    <Save size={18} /> 開催日にする
+                  </button>
+                </div>
+              </div>
+
+              {event.confirmed_date && (
+                <button
+                  onClick={() => saveConfirmedDate(null)}
+                  disabled={savingDate}
+                  className="text-sm text-gray-500 hover:text-red-600 underline disabled:opacity-60"
+                >
+                  開催日を取り消して調整中に戻す
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Response table */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
