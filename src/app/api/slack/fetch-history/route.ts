@@ -25,6 +25,12 @@ interface SlackMessageFile {
   thumb_480?: string
 }
 
+interface SlackReaction {
+  name: string
+  users?: string[]
+  count?: number
+}
+
 interface SlackMessage {
   type: string
   user?: string
@@ -34,6 +40,7 @@ interface SlackMessage {
   thread_ts?: string
   subtype?: string
   files?: SlackMessageFile[]
+  reactions?: SlackReaction[]
 }
 
 // Join a channel before fetching (no-op if already member)
@@ -195,6 +202,7 @@ export async function POST(req: NextRequest) {
     channels_processed: 0,
     messages_saved: 0,
     messages_skipped: 0,
+    reactions_saved: 0,
     errors: [] as string[],
   }
 
@@ -234,9 +242,32 @@ export async function POST(req: NextRequest) {
       avatar_url: string | null
     }[] = []
 
+    // リアクションは message_reactions が channel_id + メッセージ時刻で持つため、
+    // messages の登録有無に関係なく保存できる。既存メッセージの分も拾うので
+    // ここは skip 判定より前で集める。
+    const reactionRows: {
+      channel_id: string
+      message_created_at: string
+      user_name: string
+      reaction: string
+    }[] = []
+
     for (const msg of slackMessages) {
       if (!msg.user) continue
       const created_at = tsToISO(msg.ts)
+
+      if (msg.reactions?.length) {
+        for (const r of msg.reactions) {
+          for (const uid of r.users ?? []) {
+            reactionRows.push({
+              channel_id: channel.id,
+              message_created_at: created_at,
+              user_name: await resolveUserName(token, uid),
+              reaction: r.name,
+            })
+          }
+        }
+      }
 
       if (existingTimestamps.has(created_at)) {
         results.messages_skipped++
@@ -273,6 +304,27 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`[fetch-history] "${channel.name}": ${newRows.length} new messages to insert, ${results.messages_skipped} skipped`)
+
+    // リアクションの保存。messages とは独立させ、片方が失敗しても他方を止めない。
+    if (reactionRows.length > 0) {
+      const R_BATCH = 200
+      for (let i = 0; i < reactionRows.length; i += R_BATCH) {
+        const batch = reactionRows.slice(i, i + R_BATCH)
+        const { error: rErr } = await sb
+          .from('message_reactions')
+          .upsert(batch, {
+            onConflict: 'channel_id,message_created_at,user_name,reaction',
+            ignoreDuplicates: true,
+          })
+        if (rErr) {
+          console.error(`[fetch-history] "${channel.name}" reactions error:`, rErr.message)
+          results.errors.push(`${channel.name} のリアクション: ${rErr.message}`)
+        } else {
+          results.reactions_saved += batch.length
+        }
+      }
+      console.log(`[fetch-history] "${channel.name}": reactions ${reactionRows.length} 件を保存`)
+    }
 
     if (newRows.length === 0) {
       results.channels_processed++

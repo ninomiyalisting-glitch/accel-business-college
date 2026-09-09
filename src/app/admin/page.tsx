@@ -17,7 +17,7 @@ export default function AdminPage() {
   const [joining, setJoining] = useState(false)
   const [joinResult, setJoinResult] = useState<{ joined: number; already_member: number; failed: number } | null>(null)
   const [fetchingHistory, setFetchingHistory] = useState(false)
-  const [historyResult, setHistoryResult] = useState<{ channels_processed: number; messages_saved: number; messages_skipped: number; errors: string[] } | null>(null)
+  const [historyResult, setHistoryResult] = useState<{ channels_processed: number; messages_saved: number; messages_skipped: number; reactions_saved?: number; errors: string[] } | null>(null)
   const [backfillingAvatars, setBackfillingAvatars] = useState(false)
   const [backfillResult, setBackfillResult] = useState<{ members_fetched: number; users_upserted: number; messages_updated: number; skipped: number } | null>(null)
   const [fetchingReplies, setFetchingReplies] = useState(false)
@@ -299,6 +299,7 @@ export default function AdminPage() {
                     <span className="text-accel-active font-medium">取得チャンネル: {historyResult.channels_processed}</span>
                     <span className="text-green-700 font-medium">保存: {historyResult.messages_saved}件</span>
                     <span className="text-gray-400">スキップ: {historyResult.messages_skipped}件</span>
+                    <span className="text-green-700 font-medium">リアクション: {historyResult.reactions_saved ?? 0}件</span>
                   </div>
                   {historyResult.errors.length > 0 && (
                     <div className="text-red-500">エラー: {historyResult.errors.slice(0, 3).join(' / ')}</div>
