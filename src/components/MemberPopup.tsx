@@ -4,8 +4,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { X, MessageCircle, UserCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { SLACK_TEAM_ID } from '@/lib/slackWorkspace'
 
-const SLACK_TEAM_ID = 'T058E88UB40'
 
 function getAvatarColor(name: string): string {
   const colors = [

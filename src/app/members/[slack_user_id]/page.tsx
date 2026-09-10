@@ -8,8 +8,8 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 import PracticePoints from '@/components/PracticePoints'
+import { SLACK_TEAM_ID } from '@/lib/slackWorkspace'
 
-const SLACK_TEAM_ID = 'T058E88UB40'
 const SLACK_USER_KEY = 'abc_slackUser'
 
 interface DBUser {
