@@ -87,6 +87,7 @@ interface PhotoRow {
   caption: string | null
   uploader_name: string
   created_at: string
+  category_id: string
 }
 
 interface MemberRow {
@@ -312,9 +313,10 @@ export default function DashboardPage() {
             .limit(10),
           supabase
             .from('photos')
-            .select('id, image_url, caption, uploader_name, created_at')
+            .select('id, image_url, caption, uploader_name, created_at, category_id')
             .order('created_at', { ascending: false })
-            .limit(12),
+            // カテゴリーごとに3枚へ絞るので、多めに取ってから間引く
+            .limit(60),
           fetch('/api/vimeo/videos?project_id=25313251&recursive=1')
             .then((r) => r.json())
             .catch(() => null),
@@ -355,7 +357,21 @@ export default function DashboardPage() {
         guideIds ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, 3) : []
       )
       setNewMembers((membersRes.data ?? []) as MemberRow[])
-      setPhotos((photosRes.data ?? []) as PhotoRow[])
+      /**
+       * 同じカテゴリーの写真ばかりが並ばないよう、1カテゴリー3枚までにする。
+       * 1つのアルバムに大量に上げると、ホームがそれだけで埋まってしまうため。
+       */
+      const perCategory = new Map<string, number>()
+      const picked: PhotoRow[] = []
+      for (const ph of (photosRes.data ?? []) as PhotoRow[]) {
+        const key = ph.category_id ?? ''
+        const n = perCategory.get(key) ?? 0
+        if (n >= 3) continue
+        perCategory.set(key, n + 1)
+        picked.push(ph)
+        if (picked.length >= 12) break
+      }
+      setPhotos(picked)
 
       if (vimeoResult && Array.isArray(vimeoResult.data)) {
         setVideos((vimeoResult.data as VimeoVideo[]).slice(0, 4))
