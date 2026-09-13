@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, BookOpen, Check, X } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, X, Sparkles } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import RichTextEditor from '@/components/RichTextEditor'
 
@@ -25,6 +25,7 @@ export default function NewArticlePage() {
   const [parentCategoryId, setParentCategoryId] = useState('')  // 大カテゴリー
   const [subCategoryId, setSubCategoryId] = useState('')         // 小カテゴリー (任意)
   const [coverImageUrl, setCoverImageUrl] = useState('')
+  const [fetchingCover, setFetchingCover] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [slackUser, setSlackUser] = useState<{ slack_user_id: string; display_name: string; avatar_url?: string } | null>(null)
@@ -86,6 +87,29 @@ export default function NewArticlePage() {
     setSubCategoryId('')
     setNewCatName('')
     setShowNewCat(false)
+  }
+
+
+  /**
+   * タイトルからカバー画像を拾う。イベントと同じ API を使う。
+   * タイトルを英語のキーワードに直してから画像を検索する仕組み。
+   */
+  const fetchCoverFromTitle = async () => {
+    if (!title.trim()) { alert('先にタイトルを入力してください'); return }
+    setFetchingCover(true)
+    try {
+      const res = await fetch('/api/events/cover-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: title.trim() }),
+      })
+      const json = await res.json()
+      if (json.url) setCoverImageUrl(json.url)
+      else alert('画像の取得に失敗しました')
+    } catch {
+      alert('画像の取得に失敗しました')
+    }
+    setFetchingCover(false)
   }
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,10 +204,34 @@ export default function NewArticlePage() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverImageUrl} alt="カバー" loading="lazy" decoding="async" className="w-full h-40 object-cover rounded-xl mb-3" />
           )}
-          <label className="inline-flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg cursor-pointer transition-colors">
-            {uploading ? 'アップロード中...' : '画像を選択'}
-            <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploading} />
-          </label>
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100">
+              {uploading ? 'アップロード中...' : '画像を選択'}
+              <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploading} />
+            </label>
+            <button
+              type="button"
+              onClick={fetchCoverFromTitle}
+              disabled={fetchingCover}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#279300]/30 px-3 py-2 text-xs font-medium text-[#1f7a00] transition-colors hover:bg-accel-lightest disabled:opacity-50"
+            >
+              {fetchingCover ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#279300]/40 border-t-[#279300]" />
+              ) : (
+                <Sparkles size={13} />
+              )}
+              AI生成
+            </button>
+            {coverImageUrl && (
+              <button
+                type="button"
+                onClick={() => setCoverImageUrl('')}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-50"
+              >
+                削除
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Title + category */}
@@ -219,7 +267,17 @@ export default function NewArticlePage() {
                     onChange={(e) => setNewCatName(e.target.value)}
                     placeholder="大カテゴリー名"
                     className="text-sm border border-[#279300] rounded-lg px-2 py-1 focus:outline-none w-36"
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreateCategory(); if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') } }}
+                    onKeyDown={(e) => {
+                      // 日本語入力の変換確定でも Enter が飛んでくる。
+                      // それで作成が走り、意図しないカテゴリーができていた。
+                      // 変換中（isComposing / keyCode 229）は無視する。
+                      if (e.key === 'Enter') {
+                        if (e.nativeEvent.isComposing || e.keyCode === 229) return
+                        e.preventDefault()
+                        return
+                      }
+                      if (e.key === 'Escape') { setShowNewCat(false); setNewCatName('') }
+                    }}
                   />
                   <button
                     onClick={handleCreateCategory}

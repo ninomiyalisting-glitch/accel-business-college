@@ -29,7 +29,7 @@ const GLOBAL_NAV = [
   { href: '/videos', label: '動画' },
   { href: '/events', label: 'イベント' },
   { href: '/members', label: 'メンバー' },
-  { href: '/articles', label: 'ガイド' },
+  { href: '/articles', label: 'note' },
   { href: '/ai-chat', label: 'AI に聞く' },
 ]
 
@@ -40,7 +40,7 @@ const NAV = [
   { href: '/videos', label: '動画' },
   { href: '/events', label: 'イベント' },
   { href: '/members', label: 'メンバー' },
-  { href: '/articles', label: 'ガイド' },
+  { href: '/articles', label: 'note' },
   { href: '/ideas', label: 'アイデア' },
   { href: '/gallery', label: 'ギャラリー' },
   { href: '/ai-chat', label: 'AI に聞く' },
@@ -60,7 +60,7 @@ const TITLES: { prefix: string; title: string; action?: { href: string; label: s
   { prefix: '/members/edit', title: 'プロフィールの編集' },
   { prefix: '/members', title: 'メンバー' },
   { prefix: '/articles/new', title: '記事の作成' },
-  { prefix: '/articles', title: 'ナレッジベース' },
+  { prefix: '/articles', title: 'ビジカレnote' },
   { prefix: '/ideas', title: 'アイデア' },
   { prefix: '/gallery', title: 'ギャラリー' },
   { prefix: '/ai-chat', title: 'AI に聞く' },

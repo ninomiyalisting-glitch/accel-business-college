@@ -207,7 +207,11 @@ export default function DashboardPage() {
   const [channelMap, setChannelMap] = useState<Record<string, string>>({})
   const [videos, setVideos] = useState<VimeoVideo[]>([])
   const [articles, setArticles] = useState<Article[]>([])
-  const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([])
+  const [categories, setCategories] = useState<
+    { id: string; name: string; color: string; role: string | null; parent_id: string | null }[]
+  >([])
+  /** 「使い方ガイド」に割り当てられたカテゴリーの記事 */
+  const [guideArticles, setGuideArticles] = useState<Article[]>([])
   const [newMembers, setNewMembers] = useState<MemberRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -249,13 +253,17 @@ export default function DashboardPage() {
             )
             .order('created_at', { ascending: false })
             .limit(40),
+          // 記事は用途の割り当てを見てから絞るので、ここでは広めに取る
           supabase
             .from('articles')
             .select('id, title, cover_image_url, author_name, author_avatar, created_at, category_id')
             .eq('published', true)
             .order('created_at', { ascending: false })
-            .limit(5),
-          supabase.from('article_categories').select('id, name, color').order('name'),
+            .limit(40),
+          supabase
+            .from('article_categories')
+            .select('id, name, color, role, sort_order, parent_id')
+            .order('sort_order'),
           supabase
             .from('users')
             .select('slack_user_id, display_name, avatar_url, created_at')
@@ -270,8 +278,36 @@ export default function DashboardPage() {
       for (const c of channelsRes.data ?? []) cmap[c.id] = c.name
       setChannelMap(cmap)
 
-      setArticles((articlesRes.data ?? []) as Article[])
-      setCategories((catsRes.data ?? []) as { id: string; name: string; color: string }[])
+      const cats = (catsRes.data ?? []) as {
+        id: string
+        name: string
+        color: string
+        role: string | null
+        parent_id: string | null
+      }[]
+      setCategories(cats)
+
+      /**
+       * どのカテゴリーをどのブロックに出すかは、note のカテゴリー管理で決める。
+       * 割り当てが無いときは、記事全体の新着を出して空にしない。
+       */
+      const allArticles = (articlesRes.data ?? []) as Article[]
+      const idsOf = (role: string) => {
+        const root = cats.find((c) => c.role === role)
+        if (!root) return null
+        // 小カテゴリーの記事も親の割り当てに含める
+        const childIds = cats.filter((c) => c.parent_id === root.id).map((c) => c.id)
+        return new Set([root.id, ...childIds])
+      }
+      const memberIds = idsOf('member')
+      const guideIds = idsOf('guide')
+
+      setArticles(
+        (memberIds ? allArticles.filter((a) => a.category_id && memberIds.has(a.category_id)) : allArticles).slice(0, 5)
+      )
+      setGuideArticles(
+        guideIds ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, 3) : []
+      )
       setNewMembers((membersRes.data ?? []) as MemberRow[])
 
       if (vimeoResult && Array.isArray(vimeoResult.data)) {
@@ -382,6 +418,9 @@ export default function DashboardPage() {
     }
     load()
   }, [slackUserId])
+
+  const memberCategory = useMemo(() => categories.find((c) => c.role === 'member') ?? null, [categories])
+  const guideCategory = useMemo(() => categories.find((c) => c.role === 'guide') ?? null, [categories])
 
   /** 開催決定を先に、その後ろに調整中。終了は出さない */
   const shownEvents = useMemo(() => {
@@ -634,8 +673,8 @@ export default function DashboardPage() {
         <section className="mb-10">
           <SectionHead
             icon={<BookOpen size={20} />}
-            title="メンバーコンテンツ"
-            href="/articles"
+            title={memberCategory?.name ?? 'メンバーコンテンツ'}
+            href={memberCategory ? `/articles?category=${memberCategory.id}` : '/articles'}
             linkLabel="一覧へ"
           />
           {loading ? (
@@ -853,21 +892,53 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* ── 使い方ガイド ── */}
-        {/* ヘッダーの「ガイド」と同じ行き先にする。/guide は存在しない */}
-        <Link
-          href="/articles"
-          className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white px-6 py-5 shadow-sm transition-colors hover:border-accel-secondary"
-        >
-          <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-accel-lightest text-accel-text">
-            <Users size={22} />
-          </span>
-          <div className="min-w-0">
-            <p className="font-bold text-gray-900">使い方ガイド</p>
-            <p className="text-sm text-gray-500">このサイトでできることと、使い方をまとめています。</p>
-          </div>
-          <ChevronRight size={20} className="ml-auto flex-shrink-0 text-gray-300" />
-        </Link>
+        {/* ── 使い方ガイド ──
+            note のカテゴリー管理で「使い方ガイド」に割り当てたカテゴリーの記事を出す。
+            割り当てが無ければ、note への入口だけを見せる。 */}
+        <section className="mb-4">
+          <SectionHead
+            icon={<Users size={20} />}
+            title="使い方ガイド"
+            href={guideCategory ? `/articles?category=${guideCategory.id}` : '/articles'}
+            linkLabel={guideCategory ? 'すべて見る' : 'ビジカレnote'}
+          />
+          {guideArticles.length > 0 ? (
+            <ul className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+              {guideArticles.map((a) => (
+                <li key={a.id} className="border-b border-gray-50 last:border-b-0">
+                  <Link
+                    href={`/articles/${a.id}`}
+                    className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-muted"
+                  >
+                    <span
+                      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${toneOf(a.title)}`}
+                    >
+                      <BookOpen size={18} />
+                    </span>
+                    <p className="min-w-0 flex-1 truncate font-bold text-gray-900">{a.title}</p>
+                    <ChevronRight size={18} className="flex-shrink-0 text-gray-300" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Link
+              href="/articles"
+              className="flex items-center gap-4 rounded-3xl border border-gray-100 bg-white px-6 py-5 shadow-sm transition-colors hover:border-accel-secondary"
+            >
+              <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-accel-lightest text-accel-text">
+                <Users size={22} />
+              </span>
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900">ビジカレnote</p>
+                <p className="text-sm text-gray-500">
+                  記事とガイドをまとめています。使い方ガイドに出す記事は、note のカテゴリー管理で選べます。
+                </p>
+              </div>
+              <ChevronRight size={20} className="ml-auto flex-shrink-0 text-gray-300" />
+            </Link>
+          )}
+        </section>
       </main>
     </div>
   )

@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo, Suspense } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { BookOpen, Plus, Search, User, X, Tag, ChevronDown, Pencil, Trash2 } from 'lucide-react'
+import { BookOpen, Plus, Search, User, X, Tag, ChevronDown, ChevronUp, ChevronDown as ChevronDownIcon, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
@@ -25,6 +24,21 @@ interface Category {
   description: string | null
   color: string
   parent_id: string | null
+  /** 管理画面の上下ボタンで決める並び順。小さいほど先 */
+  sort_order: number
+  /** ダッシュボードのどのブロックに出すか。'member' / 'guide' / null */
+  role: string | null
+}
+
+/** ダッシュボードに差し込める用途。1つの用途につき1カテゴリーまで */
+const ROLE_LABEL: Record<string, string> = {
+  member: 'メンバーコンテンツ',
+  guide: '使い方ガイド',
+}
+
+/** 並び順。sort_order が同じなら名前で決めて、順序が揺れないようにする */
+function byOrder(a: Category, b: Category): number {
+  return a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja')
 }
 
 interface Article {
@@ -50,6 +64,81 @@ interface ParentSection {
   directArticles: Article[]   // 大カテゴリー直下に紐付いた記事
   children: ChildSection[]    // 小カテゴリーごとの記事
   totalCount: number
+}
+
+/**
+ * 画像が無いときの下地色。タイトルから決めるので、
+ * 同じ記事は常に同じ色になり、並べたときに見分けがつく。
+ */
+const CARD_TONES = [
+  'bg-accel-lightest text-accel-secondary',
+  'bg-[#dff0c4] text-[#279300]',
+  'bg-[#e6f2f8] text-[#0097DB]',
+  'bg-[#f3f0dc] text-[#8a7f2e]',
+  'bg-[#eae7f5] text-[#6b5fa8]',
+]
+function toneOf(seed: string): string {
+  let n = 0
+  for (let i = 0; i < seed.length; i++) n = (n * 31 + seed.charCodeAt(i)) >>> 0
+  return CARD_TONES[n % CARD_TONES.length]
+}
+
+/** 記事カード。イベント一覧と同じ見せ方に揃える */
+function ArticleCard({
+  article,
+  category,
+  showCategory = false,
+}: {
+  article: Article
+  category: Category | null
+  /** カテゴリー見出しの下に並ぶときは重複するので既定では出さない */
+  showCategory?: boolean
+}) {
+  return (
+    <Link href={`/articles/${article.id}`} className="group">
+      <div className={`relative mb-2.5 aspect-[16/10] overflow-hidden rounded-2xl ${toneOf(article.title)}`}>
+        {article.cover_image_url ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={article.cover_image_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <BookOpen size={26} />
+          </div>
+        )}
+      </div>
+      {showCategory && category && (
+        <span
+          className="mb-1.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+          style={{ backgroundColor: category.color }}
+        >
+          {category.name}
+        </span>
+      )}
+      <h2 className="line-clamp-2 font-bold leading-snug text-gray-900">{article.title}</h2>
+      <div className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
+        {article.author_avatar ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={article.author_avatar}
+            alt=""
+            className="h-5 w-5 flex-shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <User size={12} className="flex-shrink-0" />
+        )}
+        <span className="truncate">{article.author_name}</span>
+        <span className="ml-auto flex-shrink-0">
+          {format(new Date(article.created_at), 'M/d', { locale: ja })}
+        </span>
+      </div>
+    </Link>
+  )
 }
 
 export default function ArticlesPage() {
@@ -79,6 +168,7 @@ function ArticlesContent() {
   const [newCatColor, setNewCatColor] = useState(PRESET_COLORS[0])
   const [newCatParentId, setNewCatParentId] = useState('')
   const [savingCat, setSavingCat] = useState(false)
+  const [movingCatId, setMovingCatId] = useState<string | null>(null)
 
   // edit modal state
   const [editingCat, setEditingCat] = useState<Category | null>(null)
@@ -106,7 +196,7 @@ function ArticlesContent() {
         .select('id, title, category_id, author_name, author_avatar, cover_image_url, created_at, article_categories(id, name, description, color, parent_id)')
         .eq('published', true)
         .order('created_at', { ascending: false }),
-      supabase.from('article_categories').select('id, name, description, color, parent_id').order('name'),
+      supabase.from('article_categories').select('id, name, description, color, parent_id, sort_order, role').order('sort_order'),
     ])
     setArticles((articlesRes.data ?? []) as unknown as Article[])
     setCategories((catsRes.data ?? []) as Category[])
@@ -133,17 +223,93 @@ function ArticlesContent() {
         description: newCatDesc.trim() || null,
         color: newCatColor,
         parent_id: newCatParentId || null,
+        // 同じ階層の末尾に置く。0 のままだと既存より前に割り込んでしまう
+        sort_order:
+          Math.max(
+            0,
+            ...categories
+              .filter((c) => (c.parent_id ?? '') === (newCatParentId || ''))
+              .map((c) => c.sort_order)
+          ) + 10,
       })
-      .select('id, name, description, color, parent_id')
+      .select('id, name, description, color, parent_id, sort_order, role')
       .single()
     setSavingCat(false)
     if (error || !data) { alert('作成に失敗しました'); return }
-    setCategories((prev) => [...prev, data as Category].sort((a, b) => a.name.localeCompare(b.name, 'ja')))
+    setCategories((prev) => [...prev, data as Category].sort(byOrder))
     setShowModal(false)
     setNewCatName('')
     setNewCatDesc('')
     setNewCatColor(PRESET_COLORS[0])
     setNewCatParentId('')
+  }
+
+  /**
+   * カテゴリーの並べ替え。隣と sort_order を入れ替える。
+   *
+   * 同じ階層（親が同じもの）の中だけで動かす。大カテゴリーと小カテゴリーが
+   * 混ざって入れ替わると、画面の並びと合わなくなるため。
+   */
+  const moveCategory = async (cat: Category, dir: -1 | 1) => {
+    const siblings = categories
+      .filter((c) => (c.parent_id ?? '') === (cat.parent_id ?? ''))
+      .sort(byOrder)
+    const i = siblings.findIndex((c) => c.id === cat.id)
+    const swap = siblings[i + dir]
+    if (!swap) return // 端なので動かせない
+
+    setMovingCatId(cat.id)
+    // 値を交換する。連番を振り直すより書き込みが 2 行で済む
+    const [a, b] = [
+      { id: cat.id, sort_order: swap.sort_order },
+      { id: swap.id, sort_order: cat.sort_order },
+    ]
+    const results = await Promise.all([
+      supabase.from('article_categories').update({ sort_order: a.sort_order }).eq('id', a.id),
+      supabase.from('article_categories').update({ sort_order: b.sort_order }).eq('id', b.id),
+    ])
+    setMovingCatId(null)
+    if (results.some((r) => r.error)) { alert('並べ替えに失敗しました'); return }
+
+    setCategories((prev) =>
+      prev
+        .map((c) =>
+          c.id === a.id ? { ...c, sort_order: a.sort_order }
+          : c.id === b.id ? { ...c, sort_order: b.sort_order }
+          : c
+        )
+        .sort(byOrder)
+    )
+  }
+
+  /**
+   * ダッシュボードのどのブロックに出すかを決める。
+   * 同じ用途は 1 カテゴリーまでなので、付け替えるときは先に外す。
+   */
+  const setCategoryRole = async (cat: Category, role: string | null) => {
+    const holder = categories.find((c) => c.role === role && c.id !== cat.id)
+    if (role && holder) {
+      const ok = confirm(
+        `「${ROLE_LABEL[role]}」は現在「${holder.name}」に設定されています。\n「${cat.name}」に付け替えますか？`
+      )
+      if (!ok) return
+      await supabase.from('article_categories').update({ role: null }).eq('id', holder.id)
+    }
+    const { error } = await supabase
+      .from('article_categories')
+      .update({ role })
+      .eq('id', cat.id)
+    if (error) { alert('設定に失敗しました'); return }
+
+    setCategories((prev) =>
+      prev.map((c) =>
+        c.id === cat.id ? { ...c, role }
+        : role && c.role === role ? { ...c, role: null }
+        : c
+      )
+    )
+    // 編集中の控えも直す。ここを忘れるとボタンの選択が画面に出ない
+    setEditingCat((cur) => (cur && cur.id === cat.id ? { ...cur, role } : cur))
   }
 
   const openEditModal = (cat: Category) => {
@@ -166,7 +332,7 @@ function ArticlesContent() {
         parent_id: editParentId || null,
       })
       .eq('id', editingCat.id)
-      .select('id, name, description, color, parent_id')
+      .select('id, name, description, color, parent_id, sort_order, role')
       .single()
     setSavingEdit(false)
     if (error || !data) { alert('更新に失敗しました'); return }
@@ -174,7 +340,7 @@ function ArticlesContent() {
     setCategories((prev) =>
       prev
         .map((c) => (c.id === updated.id ? updated : c))
-        .sort((a, b) => a.name.localeCompare(b.name, 'ja'))
+        .sort(byOrder)
     )
     // 記事に埋め込まれたカテゴリー情報も同期
     setArticles((prev) =>
@@ -377,8 +543,41 @@ function ArticlesContent() {
                       {section.label}
                       <span className="ml-1.5 font-normal text-gray-400 text-xs">({section.totalCount})</span>
                     </span>
+                    {/* 用途が割り当てられていれば、誰が見ても分かるように出す */}
+                    {(() => {
+                      const cat = categories.find((c) => c.id === section.key)
+                      return cat?.role ? (
+                        <span className="flex-shrink-0 rounded-full bg-accel-lightest px-2 py-0.5 text-[11px] font-semibold text-accel-deep">
+                          {ROLE_LABEL[cat.role]}
+                        </span>
+                      ) : null
+                    })()}
                     {isAdmin && !isUncategorized && (
                       <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const cat = categories.find((c) => c.id === section.key)
+                            if (cat) moveCategory(cat, -1)
+                          }}
+                          disabled={movingCatId !== null}
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#1f7a00] disabled:opacity-40"
+                          title="上へ移動"
+                        >
+                          <ChevronUp size={12} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const cat = categories.find((c) => c.id === section.key)
+                            if (cat) moveCategory(cat, 1)
+                          }}
+                          disabled={movingCatId !== null}
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#1f7a00] disabled:opacity-40"
+                          title="下へ移動"
+                        >
+                          <ChevronDownIcon size={12} />
+                        </button>
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
@@ -450,26 +649,13 @@ function ArticlesContent() {
                               </div>
                             )}
                             {!childCollapsed && (
-                              <div className="bg-gray-50/50">
-                                {cs.articles.map((article, i) => (
-                                  <Link
+                              <div className="grid grid-cols-2 gap-4 bg-gray-50/50 px-4 py-4 lg:grid-cols-4">
+                                {cs.articles.map((article) => (
+                                  <ArticleCard
                                     key={article.id}
-                                    href={`/articles/${article.id}`}
-                                    className={`flex items-center gap-3 pl-9 pr-4 py-3 hover:bg-white transition-colors group ${i !== 0 ? 'border-t border-gray-100' : ''}`}
-                                  >
-                                    <div className="flex-1 min-w-0">
-                                      <h2 className="font-medium text-gray-900 text-sm truncate mb-0.5">{article.title}</h2>
-                                      <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                                        {article.author_avatar ? (
-                                          <Image src={article.author_avatar} alt={article.author_name} width={14} height={14} className="rounded-full flex-shrink-0" />
-                                        ) : (
-                                          <User size={11} className="flex-shrink-0" />
-                                        )}
-                                        <span className="truncate">{article.author_name}</span>
-                                      </div>
-                                    </div>
-                                    <span className="flex-shrink-0 text-xs text-gray-400">{format(new Date(article.created_at), 'M/d', { locale: ja })}</span>
-                                  </Link>
+                                    article={article}
+                                    category={cs.category}
+                                  />
                                 ))}
                               </div>
                             )}
@@ -484,26 +670,21 @@ function ArticlesContent() {
                       )}
 
                       {/* 親カテゴリー直下の記事 (小カテゴリーに属さない記事) */}
-                      {section.directArticles.map((article, i) => (
-                        <Link
-                          key={article.id}
-                          href={`/articles/${article.id}`}
-                          className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors group ${(i !== 0 || section.children.length > 0) ? 'border-t border-gray-100' : ''}`}
+                      {section.directArticles.length > 0 && (
+                        <div
+                          className={`grid grid-cols-2 gap-4 px-4 py-4 lg:grid-cols-4 ${
+                            section.children.length > 0 ? 'border-t border-gray-100' : ''
+                          }`}
                         >
-                          <div className="flex-1 min-w-0">
-                            <h2 className="font-medium text-gray-900 text-sm truncate mb-0.5">{article.title}</h2>
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                              {article.author_avatar ? (
-                                <Image src={article.author_avatar} alt={article.author_name} width={14} height={14} className="rounded-full flex-shrink-0" />
-                              ) : (
-                                <User size={11} className="flex-shrink-0" />
-                              )}
-                              <span className="truncate">{article.author_name}</span>
-                            </div>
-                          </div>
-                          <span className="flex-shrink-0 text-xs text-gray-400">{format(new Date(article.created_at), 'M/d', { locale: ja })}</span>
-                        </Link>
-                      ))}
+                          {section.directArticles.map((article) => (
+                            <ArticleCard
+                              key={article.id}
+                              article={article}
+                              category={article.article_categories}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -712,6 +893,39 @@ function ArticlesContent() {
                   >
                     {editName || 'カテゴリー名'}
                   </span>
+                </div>
+
+                {/* ホーム画面のどのブロックに出すか。用途ごとに 1 カテゴリーまで */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-gray-600">
+                    ホームに出す場所
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: null, label: '出さない' },
+                      { value: 'member', label: ROLE_LABEL.member },
+                      { value: 'guide', label: ROLE_LABEL.guide },
+                    ].map((opt) => {
+                      const on = (editingCat.role ?? null) === opt.value
+                      return (
+                        <button
+                          key={opt.label}
+                          type="button"
+                          onClick={() => setCategoryRole(editingCat, opt.value)}
+                          className={
+                            on
+                              ? 'rounded-xl border-2 border-[#279300] bg-accel-lightest px-3 py-1.5 text-xs font-semibold text-accel-deep'
+                              : 'rounded-xl border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:border-[#279300]'
+                          }
+                        >
+                          {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-gray-400">
+                    ホーム画面の「メンバーコンテンツ」「使い方ガイド」に、このカテゴリーの記事を出します。
+                  </p>
                 </div>
               </div>
 

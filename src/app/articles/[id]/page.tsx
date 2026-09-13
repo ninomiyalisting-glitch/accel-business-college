@@ -97,7 +97,7 @@ export default function ArticleDetailPage({ params }: { params: Promise<{ id: st
           </Link>
           <div className="w-px h-5 bg-gray-200" />
           <BookOpen size={17} className="text-[#1f7a00]" />
-          <h1 className="font-bold text-gray-900 text-[17px] flex-1 truncate">ナレッジベース</h1>
+          <h1 className="font-bold text-gray-900 text-[17px] flex-1 truncate">ビジカレnote</h1>
           {canEdit && (
             <div className="flex items-center gap-2">
               <Link
