@@ -137,7 +137,14 @@ export async function GET(request: NextRequest) {
   })
   if (state) params.set('channel', state)
 
-  const successUrl = `${baseUrl}/chat?${params.toString()}`
+  /**
+   * ログイン後はホーム（ダッシュボード）へ。
+   *
+   * ただしチャンネル指定つきで来た場合（Slack の通知リンクなど）は、
+   * その投稿を見に来ているのでチャットへ送る。
+   */
+  const landing = state ? '/chat' : '/dashboard'
+  const successUrl = `${baseUrl}${landing}?${params.toString()}`
   console.log('[slack/callback] redirecting to:', successUrl.substring(0, 100))
   const response = NextResponse.redirect(successUrl)
   // 認証済みマーカー Cookie（middleware / API 認可用）

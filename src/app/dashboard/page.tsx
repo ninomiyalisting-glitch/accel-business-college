@@ -19,6 +19,7 @@ import {
   Heart,
   Compass,
   UserPlus,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { Message } from '@/types'
 import { format } from 'date-fns'
@@ -78,6 +79,14 @@ interface Article {
   author_avatar: string | null
   created_at: string
   category_id: string | null
+}
+
+interface PhotoRow {
+  id: string
+  image_url: string
+  caption: string | null
+  uploader_name: string
+  created_at: string
 }
 
 interface MemberRow {
@@ -213,11 +222,43 @@ export default function DashboardPage() {
   /** 「使い方ガイド」に割り当てられたカテゴリーの記事 */
   const [guideArticles, setGuideArticles] = useState<Article[]>([])
   const [newMembers, setNewMembers] = useState<MemberRow[]>([])
+  const [photos, setPhotos] = useState<PhotoRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const [points, setPoints] = useState<PointRow[]>([])
   const [renewalDeadline, setRenewalDeadline] = useState<string | null>(null)
   const [pointsLoading, setPointsLoading] = useState(true)
+
+  /**
+   * OAuth から戻ってきたときのログイン情報を localStorage に保存する。
+   *
+   * 以前はチャットにだけこの処理があり、ログイン後の着地もチャットだった。
+   * 着地をホームに変えたので、ここにも同じ処理が要る。
+   * これが無いと名前もポイントも出ない状態でホームが開く。
+   */
+  useEffect(() => {
+    const url = new URL(window.location.href)
+    if (url.searchParams.get('login') !== 'success') return
+
+    const id = url.searchParams.get('slack_user_id') ?? ''
+    const name = url.searchParams.get('display_name') ?? ''
+    const avatar = url.searchParams.get('avatar_url') ?? ''
+    if (id && name) {
+      try {
+        localStorage.setItem(SLACK_USER_KEY, JSON.stringify({
+          slack_user_id: id, display_name: name, avatar_url: avatar,
+        }))
+        localStorage.setItem(USER_NAME_KEY, name)
+      } catch {
+        // 保存できなくても画面は出す
+      }
+      setSlackUserId(id)
+      setUserName(name)
+      setAvatarUrl(avatar || null)
+    }
+    // URL からログイン情報を消す。共有やリロードで残らないように
+    window.history.replaceState({}, '', '/dashboard')
+  }, [])
 
   useEffect(() => {
     try {
@@ -243,7 +284,7 @@ export default function DashboardPage() {
     const load = async () => {
       setLoading(true)
 
-      const [channelsRes, eventsRes, articlesRes, catsRes, membersRes, vimeoResult] =
+      const [channelsRes, eventsRes, articlesRes, catsRes, membersRes, photosRes, vimeoResult] =
         await Promise.all([
           supabase.from('channels').select('id, name').eq('is_hidden', false),
           supabase
@@ -269,6 +310,11 @@ export default function DashboardPage() {
             .select('slack_user_id, display_name, avatar_url, created_at')
             .order('created_at', { ascending: false })
             .limit(10),
+          supabase
+            .from('photos')
+            .select('id, image_url, caption, uploader_name, created_at')
+            .order('created_at', { ascending: false })
+            .limit(12),
           fetch('/api/vimeo/videos?project_id=25313251&recursive=1')
             .then((r) => r.json())
             .catch(() => null),
@@ -309,6 +355,7 @@ export default function DashboardPage() {
         guideIds ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, 3) : []
       )
       setNewMembers((membersRes.data ?? []) as MemberRow[])
+      setPhotos((photosRes.data ?? []) as PhotoRow[])
 
       if (vimeoResult && Array.isArray(vimeoResult.data)) {
         setVideos((vimeoResult.data as VimeoVideo[]).slice(0, 4))
@@ -862,6 +909,50 @@ export default function DashboardPage() {
                 </Link>
               ))}
             </Rail>
+          )}
+        </section>
+
+        {/* ── ビジカレフォト ── */}
+        <section className="mb-10">
+          <SectionHead
+            icon={<ImageIcon size={20} />}
+            title="ビジカレフォト"
+            href="/gallery"
+            linkLabel="ギャラリー"
+          />
+          {loading ? (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="aspect-square animate-pulse rounded-2xl bg-gray-100" />
+              ))}
+            </div>
+          ) : photos.length === 0 ? (
+            <EmptyNote>まだ写真がありません。</EmptyNote>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+              {photos.map((ph) => (
+                <Link
+                  key={ph.id}
+                  href="/gallery"
+                  title={ph.caption ?? `${ph.uploader_name} さんの写真`}
+                  className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100"
+                >
+                  {/* next/image は未登録ドメインで例外を投げページごと落とすので img を使う */}
+                  <img
+                    src={ph.image_url}
+                    alt={ph.caption ?? ''}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  />
+                  {ph.caption && (
+                    <span className="absolute inset-x-0 bottom-0 line-clamp-1 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-4 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      {ph.caption}
+                    </span>
+                  )}
+                </Link>
+              ))}
+            </div>
           )}
         </section>
 
