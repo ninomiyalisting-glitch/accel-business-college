@@ -24,3 +24,8 @@ node_modules/
 tsconfig.tsbuildinfo
 .build-check.tgz
 *.tar.gz
+
+# 作業用の一時ファイル置き場
+_to_delete/
+*.tgz
+*.tar.gz
