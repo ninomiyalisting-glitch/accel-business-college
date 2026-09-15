@@ -677,8 +677,15 @@ export default function DashboardPage() {
     [recentMessages]
   )
 
-  /** 専用ブロックを持つカテゴリーは「学びのコンテンツ」に出さない（同じものが二度並ぶため） */
-  const otherCategories = useMemo(() => categories.filter((c) => !c.role), [categories])
+  /**
+   * 「学びのコンテンツ」に出すカテゴリー。大カテゴリーだけ。
+   * 小カテゴリーは親の一覧ページから辿れるので出さない。
+   * 専用ブロックを持つカテゴリー（役割つき）も、同じものが二度並ぶので出さない。
+   */
+  const otherCategories = useMemo(
+    () => categories.filter((c) => !c.role && !c.parent_id),
+    [categories]
+  )
 
   /** 開催決定を先に、その後ろに調整中。終了は出さない */
   const shownEvents = useMemo(() => {
