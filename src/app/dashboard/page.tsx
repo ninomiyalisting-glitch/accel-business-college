@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
   X,
   ListChecks,
+  ChevronLeft,
 } from 'lucide-react'
 import { Message } from '@/types'
 import { format } from 'date-fns'
@@ -353,6 +354,8 @@ export default function DashboardPage() {
   const [guideArticles, setGuideArticles] = useState<Article[]>([])
   const [newMembers, setNewMembers] = useState<MemberRow[]>([])
   const [photos, setPhotos] = useState<PhotoRow[]>([])
+  /** 活動写真の拡大表示。開いている写真の添字。null で閉じる */
+  const [photoIndex, setPhotoIndex] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const [points, setPoints] = useState<PointRow[]>([])
@@ -635,6 +638,18 @@ export default function DashboardPage() {
       null,
     [categories]
   )
+  /** 拡大表示中のキー操作。← → で移動、Esc で閉じる */
+  useEffect(() => {
+    if (photoIndex === null) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPhotoIndex(null)
+      if (e.key === 'ArrowRight') setPhotoIndex((i) => (i === null ? null : (i + 1) % photos.length))
+      if (e.key === 'ArrowLeft') setPhotoIndex((i) => (i === null ? null : (i - 1 + photos.length) % photos.length))
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [photoIndex, photos.length])
+
   /** ポップアップを開く。記事は初回だけ読む */
   async function openPointList() {
     setPointListOpen(true)
@@ -1099,19 +1114,22 @@ export default function DashboardPage() {
             <EmptyNote>まだ写真がありません。</EmptyNote>
           ) : (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {photos.map((ph) => (
-                <Link
+              {photos.map((ph, i) => (
+                <button
                   key={ph.id}
-                  href="/gallery"
+                  type="button"
+                  onClick={() => setPhotoIndex(i)}
                   title={ph.caption ?? `${ph.uploader_name} さんの写真`}
                   className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100"
                 >
-                  {/* next/image は未登録ドメインで例外を投げページごと落とすので img を使う */}
+                  {/* next/image は未登録ドメインで例外を投げページごと落とすので img を使う。
+                      読み込めない写真（壊れたファイル・未対応形式）は枠ごと外す */}
                   <img
                     src={ph.image_url}
                     alt={ph.caption ?? ''}
                     loading="lazy"
                     decoding="async"
+                    onError={() => setPhotos((prev) => prev.filter((p) => p.id !== ph.id))}
                     className="h-full w-full object-cover transition-transform group-hover:scale-105"
                   />
                   {ph.caption && (
@@ -1119,7 +1137,7 @@ export default function DashboardPage() {
                       {ph.caption}
                     </span>
                   )}
-                </Link>
+                </button>
               ))}
             </div>
           )}
@@ -1204,6 +1222,74 @@ export default function DashboardPage() {
             </Link>
           )}
         </section>
+
+      {/* 活動写真の拡大表示 */}
+      {photoIndex !== null && photos[photoIndex] && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setPhotoIndex(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPhotoIndex(null)}
+            aria-label="閉じる"
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+          >
+            <X size={22} />
+          </button>
+          {photos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoIndex((photoIndex - 1 + photos.length) % photos.length)
+                }}
+                aria-label="前の写真"
+                className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-4"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setPhotoIndex((photoIndex + 1) % photos.length)
+                }}
+                aria-label="次の写真"
+                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-4"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </>
+          )}
+          <div
+            className="flex max-h-full w-full max-w-5xl flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={photos[photoIndex].image_url}
+              alt={photos[photoIndex].caption ?? ''}
+              className="max-h-[calc(100vh-120px)] max-w-full rounded-lg object-contain"
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-sm text-white/70">
+              {photos[photoIndex].caption && (
+                <span className="text-white">{photos[photoIndex].caption}</span>
+              )}
+              <span>{photos[photoIndex].uploader_name}</span>
+              <span className="text-white/40">
+                {photoIndex + 1} / {photos.length}
+              </span>
+              <Link
+                href="/gallery"
+                className="font-semibold text-white/90 underline hover:text-white"
+              >
+                活動写真をすべて見る
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 実務ポイント獲得リストのポップアップ */}
       {pointListOpen && (

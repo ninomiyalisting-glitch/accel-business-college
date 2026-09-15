@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { prepareImageForUpload } from '@/lib/imagePrep'
 import { SlackUser } from '@/types'
 import {
   ArrowLeft,
@@ -252,15 +253,18 @@ export default function GalleryPage() {
     let firstImageUrl: string | null = null
 
     for (let i = 0; i < uploadFiles.length; i++) {
-      const file = uploadFiles[i]
+      const original = uploadFiles[i]
       try {
+        // HEIC をそのまま保存すると Chrome/Android で表示できないので、
+        // ここで JPEG（長辺 2048px）に揃える。サイズも軽くなる。
+        const file = await prepareImageForUpload(original)
         const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
         const path = `${selectedCategory.id}/${Date.now()}_${i}.${ext}`
 
-        console.log(`[gallery] uploading ${file.name} → ${path}`)
+        console.log(`[gallery] uploading ${original.name} → ${path}`)
         const { error: storageError } = await supabase.storage
           .from(STORAGE_BUCKET)
-          .upload(path, file, { upsert: false })
+          .upload(path, file, { upsert: false, contentType: file.type || undefined })
 
         if (storageError) {
           console.error(`[gallery] storage error for ${file.name}:`, JSON.stringify(storageError))
@@ -292,8 +296,8 @@ export default function GalleryPage() {
         setUploadDone(i + 1)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
-        console.error(`[gallery] upload failed for ${file.name}:`, err)
-        setUploadError(`「${file.name}」のアップロードに失敗しました。\n${msg}`)
+        console.error(`[gallery] upload failed for ${original.name}:`, err)
+        setUploadError(`「${original.name}」のアップロードに失敗しました。\n${msg}`)
         setUploading(false)
         return
       }
