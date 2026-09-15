@@ -72,7 +72,7 @@ const TITLES: { prefix: string; title: string; action?: { href: string; label: s
 // ランディングだけ独自の作りなので出さない。
 // チャットにも出す。h-full で高さを使う画面なので、
 // globals.css 側でヘッダーとフッターの分を差し引いている。
-const HIDE_ON = ['/', '/auth/error']
+const HIDE_ON = ['/', '/auth/error', '/welcome']
 
 type SlackUser = { avatar_url?: string | null }
 

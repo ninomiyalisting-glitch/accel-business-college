@@ -40,9 +40,13 @@ function setBadge(n: number) {
   }
 }
 
+/** ログイン前の画面。ここではフッターのナビを出さない（押してもログインに戻されるだけ） */
+const HIDE_ON = ['/', '/auth/error', '/welcome']
+
 export default function BottomNav() {
   const pathname = usePathname()
   const [unread, setUnread] = useState(0)
+  const hidden = HIDE_ON.some((p) => (p === '/' ? pathname === '/' : pathname.startsWith(p)))
 
   useEffect(() => {
     if (!localStorage.getItem(LAST_CHAT_KEY)) {
@@ -84,6 +88,8 @@ export default function BottomNav() {
       supabase.removeChannel(sub)
     }
   }, [pathname])
+
+  if (hidden) return null
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-footer pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_12px_rgba(0,0,0,0.15)] lg:hidden">

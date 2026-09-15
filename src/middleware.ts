@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SESSION_COOKIE, verifySession } from '@/lib/session'
 
 // 認証不要のパス
-const PUBLIC_PATHS = ['/', '/auth/error']
+const PUBLIC_PATHS = ['/', '/auth/error', '/welcome'] // /welcome … 入会直後の方への案内（ログイン前に読む）
 
 // 認証不要の API プレフィックス（OAuth・外部 Webhook 用）
 const PUBLIC_API_PREFIXES = [

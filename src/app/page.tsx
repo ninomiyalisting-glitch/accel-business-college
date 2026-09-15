@@ -56,6 +56,12 @@ export default function LandingPage() {
         <p className="mt-4 text-gray-400 text-sm">
           アクセルビジネスカレッジのSlackメンバーのみ利用できます
         </p>
+        <Link
+          href="/welcome"
+          className="mt-8 inline-flex items-center gap-1.5 rounded-full border border-[#1f7a00]/30 bg-[#f7faf2] px-5 py-2.5 text-sm font-semibold text-[#1f7a00] transition-colors hover:bg-[#e8f5c9]"
+        >
+          初めての方へ：アプリへの入り方と使い方 <ArrowRight size={15} />
+        </Link>
       </main>
 
       {/* Features */}
@@ -96,6 +102,9 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 py-6 px-6 text-center">
+        <p className="mb-2 text-sm">
+          <Link href="/welcome" className="text-[#1f7a00] hover:underline">アプリへの入り方と使い方</Link>
+        </p>
         <p className="text-gray-400 text-sm">
           © {new Date().getFullYear()} アクセルビジネスカレッジ
         </p>
