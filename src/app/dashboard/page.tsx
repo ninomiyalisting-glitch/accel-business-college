@@ -414,7 +414,7 @@ export default function DashboardPage() {
     const load = async () => {
       setLoading(true)
 
-      const [channelsRes, eventsRes, articlesRes, catsRes, membersRes, photosRes, vimeoResult] =
+      const [channelsRes, eventsRes, catsRes, membersRes, photosRes, vimeoResult] =
         await Promise.all([
           supabase.from('channels').select('id, name').eq('is_hidden', false),
           supabase
@@ -424,13 +424,6 @@ export default function DashboardPage() {
             )
             .order('created_at', { ascending: false })
             .limit(60),
-          // 記事は用途の割り当てを見てから絞るので、ここでは広めに取る
-          supabase
-            .from('articles')
-            .select('id, title, cover_image_url, author_name, author_avatar, created_at, category_id')
-            .eq('published', true)
-            .order('created_at', { ascending: false })
-            .limit(40),
           supabase
             .from('article_categories')
             .select('id, name, color, role, sort_order, parent_id')
@@ -468,7 +461,6 @@ export default function DashboardPage() {
        * どのカテゴリーをどのブロックに出すかは、note のカテゴリー管理の役割で決める。
        * 未割り当てなら同名のカテゴリーで代用する（memberCategory / guideCategory と同じ規則）。
        */
-      const allArticles = (articlesRes.data ?? []) as Article[]
       const idsOf = (role: string, fallbackName: string) => {
         const root =
           cats.find((c) => c.role === role) ??
@@ -481,18 +473,29 @@ export default function DashboardPage() {
       const memberIds = idsOf('member', 'メンバーコンテンツ')
       const guideIds = idsOf('guide', '使い方ガイド')
 
-      // 割り当てたカテゴリーの記事だけを出す。
-      // 未割り当てなら空にして、設定していないことが画面で分かるようにする。
-      setArticles(
-        memberIds
-          ? allArticles.filter((a) => a.category_id && memberIds.has(a.category_id)).slice(0, HOME_MAX)
-          : []
-      )
-      setGuideArticles(
-        guideIds
-          ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, HOME_MAX)
-          : []
-      )
+      /**
+       * カテゴリーを指定して記事を取る。
+       * 以前は「新着 40 件を取ってから絞る」だったため、古いガイド記事が
+       * 新しい記事に押し出されて消えていた。記事が増えても消えないよう、
+       * カテゴリーで絞ったクエリを投げる。
+       */
+      const articlesIn = async (ids: Set<string> | null): Promise<Article[]> => {
+        if (!ids || ids.size === 0) return []
+        const { data } = await supabase
+          .from('articles')
+          .select('id, title, cover_image_url, author_name, author_avatar, created_at, category_id')
+          .eq('published', true)
+          .in('category_id', [...ids])
+          .order('created_at', { ascending: false })
+          .limit(HOME_MAX)
+        return (data ?? []) as Article[]
+      }
+      const [memberArticles, guideArticleRows] = await Promise.all([
+        articlesIn(memberIds),
+        articlesIn(guideIds),
+      ])
+      setArticles(memberArticles)
+      setGuideArticles(guideArticleRows)
       setNewMembers((membersRes.data ?? []) as MemberRow[])
       /**
        * 同じカテゴリーの写真ばかりが並ばないよう、1カテゴリー3枚までにする。
