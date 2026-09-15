@@ -125,7 +125,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                 style={{ backgroundColor: category.color }}
               />
             )}
-            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">
               {category?.name ?? '　'}
             </h1>
           </div>
@@ -189,7 +189,7 @@ export default function CategoryPage({ params }: { params: Promise<{ id: string 
                     </div>
                   )}
                 </div>
-                <h2 className="line-clamp-2 font-bold leading-snug text-gray-900">{a.title}</h2>
+                <h2 className="line-clamp-2 text-sm font-bold leading-snug text-gray-900">{a.title}</h2>
                 <div className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
                   {a.author_avatar ? (
                     /* eslint-disable-next-line @next/next/no-img-element */

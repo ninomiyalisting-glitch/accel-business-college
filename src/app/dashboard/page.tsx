@@ -220,12 +220,12 @@ function PostBlock({
   )
 
   return (
-    <section className="mb-10">
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+    <section className="mb-14">
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <span className="text-accel-text">
           <MessageSquare size={20} />
         </span>
-        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <h2 className="text-lg font-bold text-gray-900">{title}</h2>
         <div className="flex items-center gap-1 rounded-full border border-gray-200 bg-white p-0.5">
           {tabBtn('new', '新着')}
           {tabBtn('popular', '人気')}
@@ -299,9 +299,9 @@ function SectionHead({
   linkLabel?: string
 }) {
   return (
-    <div className="mb-4 flex items-center gap-2.5">
+    <div className="mb-5 flex items-center gap-2.5">
       <span className="text-accel-text">{icon}</span>
-      <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
       {href && (
         <Link
           href={href}
@@ -731,7 +731,7 @@ export default function DashboardPage() {
         </div>
 
         {/* ── イベント・勉強会 ── */}
-        <section className="mb-10">
+        <section className="mb-14">
           <SectionHead
             icon={<CalendarDays size={20} />}
             title="イベント・勉強会"
@@ -840,7 +840,7 @@ export default function DashboardPage() {
         />
 
         {/* ── 動画 ── */}
-        <section className="mb-10">
+        <section className="mb-14">
           <SectionHead
             icon={<Video size={20} />}
             title="動画"
@@ -888,7 +888,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ── メンバーコンテンツ ── */}
-        <section className="mb-10">
+        <section className="mb-14">
           <SectionHead
             icon={<BookOpen size={20} />}
             title={memberCategory?.name ?? 'メンバーコンテンツ'}
@@ -927,7 +927,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 font-bold leading-snug text-gray-900">{a.title}</p>
+                      <p className="line-clamp-2 text-sm font-bold leading-snug text-gray-900">{a.title}</p>
                       <div className="mt-1.5 flex items-center gap-2 text-sm text-gray-400">
                         {a.author_name && (
                           <>
@@ -947,7 +947,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ── 実務従事更新ポイント ── */}
-        <section className="mb-10 overflow-hidden rounded-3xl bg-gradient-to-br from-accel-text to-accel-primary text-white shadow-sm">
+        <section className="mb-14 overflow-hidden rounded-3xl bg-gradient-to-br from-accel-text to-accel-primary text-white shadow-sm">
           <div className="px-6 py-6 sm:px-8 sm:py-7">
             <div className="mb-6 flex items-center gap-3">
               <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15">
@@ -1052,7 +1052,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ── 新メンバー紹介 ── */}
-        <section className="mb-10">
+        <section className="mb-14">
           <SectionHead
             icon={<UserPlus size={20} />}
             title="新しいメンバー"
@@ -1097,7 +1097,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ── 活動写真 ── */}
-        <section className="mb-10">
+        <section className="mb-14">
           <SectionHead
             icon={<ImageIcon size={20} />}
             title="活動写真"
@@ -1145,7 +1145,7 @@ export default function DashboardPage() {
 
         {/* ── 学びのコンテンツ ── */}
         {otherCategories.length > 0 && (
-          <section className="mb-10">
+          <section className="mb-14">
             <SectionHead
               icon={<Compass size={20} />}
               title="学びのコンテンツ"

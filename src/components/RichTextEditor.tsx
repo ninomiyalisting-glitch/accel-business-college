@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
-import { Bold, Italic, Heading2, Heading3, List, ListOrdered, Link2, ImageIcon } from 'lucide-react'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import { Bold, Italic, Heading2, Heading3, List, ListOrdered, Link2, ImageIcon, Code2 } from 'lucide-react'
 
 interface Props {
   initialValue?: string
@@ -26,8 +26,17 @@ function ToolBtn({ onMouseDown, title, children }: { onMouseDown: () => void; ti
 
 const Divider = () => <div className="w-px h-5 bg-gray-300 mx-0.5" />
 
+/**
+ * 記事本文のエディタ。
+ *
+ * 既定はそのまま書けるリッチ表示。ツールバー右端の「HTML」で、
+ * HTML を直接編集するモードに切り替えられる（外で作った本文の貼り付けや細かい調整用）。
+ * 切り替え時は互いの内容を引き継ぐ。
+ */
 export default function RichTextEditor({ initialValue = '', onChange, onImageUpload, placeholder = '本文を入力...', minHeight = 320 }: Props) {
   const editorRef = useRef<HTMLDivElement>(null)
+  const [mode, setMode] = useState<'rich' | 'html'>('rich')
+  const [html, setHtml] = useState(initialValue)
 
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = initialValue
@@ -43,6 +52,28 @@ export default function RichTextEditor({ initialValue = '', onChange, onImageUpl
 
   const handleInput = () => {
     if (editorRef.current) onChange(editorRef.current.innerHTML)
+  }
+
+  const toggleMode = useCallback(() => {
+    if (mode === 'rich') {
+      // リッチ → HTML。いまの中身をテキストエリアへ
+      setHtml(editorRef.current?.innerHTML ?? '')
+      setMode('html')
+    } else {
+      // HTML → リッチ。マウント後に流し込む（ref は次の描画で付く）
+      setMode('rich')
+      requestAnimationFrame(() => {
+        if (editorRef.current) {
+          editorRef.current.innerHTML = html
+          onChange(editorRef.current.innerHTML)
+        }
+      })
+    }
+  }, [mode, html, onChange])
+
+  const handleHtmlInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setHtml(e.target.value)
+    onChange(e.target.value)
   }
 
   const handleLink = useCallback(() => {
@@ -84,16 +115,37 @@ export default function RichTextEditor({ initialValue = '', onChange, onImageUpl
         {onImageUpload && (
           <ToolBtn onMouseDown={handleImage} title="画像挿入"><ImageIcon size={15} /></ToolBtn>
         )}
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); toggleMode() }}
+          title={mode === 'rich' ? 'HTML を直接編集' : '通常の編集に戻る'}
+          className={`ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-semibold transition-colors ${
+            mode === 'html' ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+          }`}
+        >
+          <Code2 size={14} /> HTML
+        </button>
       </div>
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        data-placeholder={placeholder}
-        className="article-editor p-4 focus:outline-none text-gray-800 leading-relaxed"
-        style={{ minHeight }}
-      />
+      {mode === 'rich' ? (
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleInput}
+          data-placeholder={placeholder}
+          className="article-editor p-4 focus:outline-none text-gray-800 leading-relaxed"
+          style={{ minHeight }}
+        />
+      ) : (
+        <textarea
+          value={html}
+          onChange={handleHtmlInput}
+          spellCheck={false}
+          placeholder="<p>ここに HTML を書きます</p>"
+          className="w-full resize-y p-4 font-mono text-[13px] leading-relaxed text-gray-800 focus:outline-none"
+          style={{ minHeight }}
+        />
+      )}
     </div>
   )
 }

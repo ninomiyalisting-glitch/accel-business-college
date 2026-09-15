@@ -123,7 +123,7 @@ function ArticleCard({
           {category.name}
         </span>
       )}
-      <h2 className="line-clamp-2 font-bold leading-snug text-gray-900">{article.title}</h2>
+      <h2 className="line-clamp-2 text-sm font-bold leading-snug text-gray-900">{article.title}</h2>
       <div className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-400">
         {article.author_avatar ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -159,6 +159,8 @@ function ArticlesContent() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
+  /** 記事 0 件のカテゴリーは普段は出さない。管理者が整理するときだけ切り替えて出す */
+  const [showEmptyCats, setShowEmptyCats] = useState(false)
   const [myName, setMyName] = useState<string | null>(null)
   const [mySlackUserId, setMySlackUserId] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -407,8 +409,9 @@ function ArticlesContent() {
   // 親カテゴリー > 小カテゴリー > 記事 の階層構造を構築
   const sections = useMemo<ParentSection[]>(() => {
     const q = query.trim().toLowerCase()
-    // 管理者は記事が0件のカテゴリーも表示（編集・削除できるようにするため）
-    const showEmpty = isAdmin && !q
+    // 記事 0 件のカテゴリーは非表示。管理者が「空のカテゴリーも表示」を押したときだけ出す
+    // （編集・削除・並び替えのため）
+    const showEmpty = isAdmin && showEmptyCats && !q
     const filtered = q
       ? articles.filter((a) => a.title.toLowerCase().includes(q) || a.author_name.toLowerCase().includes(q))
       : articles
@@ -471,7 +474,7 @@ function ArticlesContent() {
       })
     }
     return result
-  }, [articles, categories, query, isAdmin])
+  }, [articles, categories, query, isAdmin, showEmptyCats])
 
 
   return (
@@ -501,6 +504,22 @@ function ArticlesContent() {
           />
         </div>
 
+        {isAdmin && !query && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowEmptyCats((v) => !v)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                showEmptyCats
+                  ? 'border-[#279300] bg-accel-lightest text-accel-deep'
+                  : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+              }`}
+            >
+              {showEmptyCats ? '空のカテゴリーを隠す' : '空のカテゴリーも表示（管理）'}
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="space-y-4">
             {[1, 2].map((i) => (
@@ -526,7 +545,7 @@ function ArticlesContent() {
             )}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-8">
             {sections.map((section) => {
               const isCollapsed = collapsed.has(section.key)
               const isUncategorized = section.key === UNCATEGORIZED_KEY
@@ -535,7 +554,7 @@ function ArticlesContent() {
                   {/* Parent header */}
                   <div
                     onClick={() => toggleCollapsed(section.key)}
-                    className="w-full flex items-center gap-2.5 px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-100 cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors border-b border-gray-100 cursor-pointer"
                   >
                     {section.color ? (
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: section.color }} />
@@ -619,10 +638,10 @@ function ArticlesContent() {
                           <div key={cs.category.id} className="border-t border-gray-100">
                             <div
                               onClick={() => toggleCollapsed(childKey)}
-                              className="w-full flex items-center gap-2 pl-6 pr-4 py-2.5 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                              className="w-full flex items-center gap-2 pl-6 pr-4 py-3 bg-white hover:bg-gray-50 transition-colors cursor-pointer"
                             >
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cs.category.color }} />
-                              <span className="font-medium text-gray-700 text-[17px] flex-1 text-left">
+                              <span className="font-semibold text-gray-700 text-sm flex-1 text-left">
                                 {cs.category.name}
                                 <span className="ml-1.5 font-normal text-gray-400 text-xs">({cs.articles.length})</span>
                               </span>
@@ -652,7 +671,7 @@ function ArticlesContent() {
                               </div>
                             )}
                             {!childCollapsed && cs.articles.length > 0 && (
-                              <div className="bg-gray-50/50 px-4 py-4">
+                              <div className="bg-gray-50/50 px-5 py-6">
                                 <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                                   {cs.articles.slice(0, NOTE_MAX).map((article) => (
                                     <ArticleCard
@@ -685,7 +704,7 @@ function ArticlesContent() {
                       {/* 親カテゴリー直下の記事 (小カテゴリーに属さない記事) */}
                       {section.directArticles.length > 0 && (
                         <div
-                          className={`px-4 py-4 ${
+                          className={`px-5 py-6 ${
                             section.children.length > 0 ? 'border-t border-gray-100' : ''
                           }`}
                         >
