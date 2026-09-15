@@ -20,6 +20,8 @@ import {
   Compass,
   UserPlus,
   Image as ImageIcon,
+  X,
+  ListChecks,
 } from 'lucide-react'
 import { Message } from '@/types'
 import { format } from 'date-fns'
@@ -29,6 +31,7 @@ import {
   EVENT_CATEGORY_STYLE as CATEGORY_STYLE,
   toCategory,
 } from '@/lib/eventCategories'
+import { isOwnerPost } from '@/lib/owner'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 const USER_NAME_KEY = 'abc_userName'
@@ -38,6 +41,12 @@ const POINT_TARGET = 30
 
 /** ホームに並べる記事の上限。これを超える分はカテゴリーの一覧へ送る */
 const HOME_MAX = 6
+
+/**
+ * 「実務ポイント獲得リスト」のポップアップに出す記事のタイトル。
+ * 使い方ガイドにこのタイトルで記事を作ると、ポイントブロックから開けるようになる。
+ */
+const POINT_LIST_TITLE = '実務ポイント獲得リスト'
 
 interface VimeoVideo {
   uri: string
@@ -166,6 +175,117 @@ function toneOf(seed: string): string {
 }
 
 /** 節の見出し。右端に一覧へのリンクを置く */
+/** 投稿ブロック。新着順がデフォルトで、タブで人気順（リアクション数）に切り替える */
+function PostBlock({
+  title,
+  loading,
+  messages,
+  channelMap,
+  emptyText,
+}: {
+  title: string
+  loading: boolean
+  messages: HotMessage[]
+  channelMap: Record<string, string>
+  emptyText: string
+}) {
+  const [tab, setTab] = useState<'new' | 'popular'>('new')
+  const shown = useMemo(() => {
+    const list = [...messages]
+    if (tab === 'popular') {
+      list.sort(
+        (a, b) =>
+          b.reaction_count - a.reaction_count ||
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
+    } else {
+      list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    }
+    return list.slice(0, 5)
+  }, [messages, tab])
+
+  const tabBtn = (key: 'new' | 'popular', label: string) => (
+    <button
+      type="button"
+      onClick={() => setTab(key)}
+      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
+        tab === key
+          ? 'bg-accel-text text-white'
+          : 'bg-white text-gray-500 hover:bg-surface-muted'
+      }`}
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <section className="mb-10">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <span className="text-accel-text">
+          <MessageSquare size={20} />
+        </span>
+        <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <div className="flex items-center gap-1 rounded-full border border-gray-200 bg-white p-0.5">
+          {tabBtn('new', '新着')}
+          {tabBtn('popular', '人気')}
+        </div>
+        <Link
+          href="/chat"
+          className="ml-auto flex shrink-0 items-center gap-1 text-sm font-semibold text-accel-active hover:underline"
+        >
+          チャットへ <ArrowRight size={14} />
+        </Link>
+      </div>
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 animate-pulse rounded-2xl bg-white" />
+          ))}
+        </div>
+      ) : shown.length === 0 ? (
+        <EmptyNote>{emptyText}</EmptyNote>
+      ) : (
+        <ul className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+          {shown.map((msg) => (
+            <li key={msg.id} className="border-b border-gray-50 last:border-b-0">
+              <Link
+                href={`/chat?channel=${msg.channel_id}`}
+                className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-surface-muted"
+              >
+                <Avatar
+                  src={msg.avatar_url ?? null}
+                  name={msg.user_name}
+                  size={40}
+                  className="mt-0.5 flex-shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 leading-relaxed text-gray-800">
+                    {msg.content || '(添付ファイル)'}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-400">
+                    <span className="font-medium text-gray-500">{msg.user_name}</span>
+                    {msg.reaction_count > 0 && (
+                      <span className="inline-flex items-center gap-1 text-accel-active">
+                        <Heart size={13} />
+                        {msg.reaction_count}
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-surface-muted px-2 py-0.5 text-xs">
+                      <Hash size={11} />
+                      {channelMap[msg.channel_id] ?? ''}
+                    </span>
+                    <span>{format(new Date(msg.created_at), 'M/d', { locale: ja })}</span>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 function SectionHead({
   icon,
   title,
@@ -216,7 +336,13 @@ export default function DashboardPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   const [events, setEvents] = useState<DashEvent[]>([])
-  const [hotMessages, setHotMessages] = useState<HotMessage[]>([])
+  const [recentMessages, setRecentMessages] = useState<HotMessage[]>([])
+  /** 実務ポイント獲得リストのポップアップ */
+  const [pointListOpen, setPointListOpen] = useState(false)
+  const [pointListLoading, setPointListLoading] = useState(false)
+  const [pointListArticle, setPointListArticle] = useState<
+    { id: string; title: string; content: string } | null | undefined
+  >(undefined)
   const [channelMap, setChannelMap] = useState<Record<string, string>>({})
   const [videos, setVideos] = useState<VimeoVideo[]>([])
   const [articles, setArticles] = useState<Article[]>([])
@@ -339,19 +465,21 @@ export default function DashboardPage() {
       setCategories(cats)
 
       /**
-       * どのカテゴリーをどのブロックに出すかは、note のカテゴリー管理で決める。
-       * 割り当てが無いときは、記事全体の新着を出して空にしない。
+       * どのカテゴリーをどのブロックに出すかは、note のカテゴリー管理の役割で決める。
+       * 未割り当てなら同名のカテゴリーで代用する（memberCategory / guideCategory と同じ規則）。
        */
       const allArticles = (articlesRes.data ?? []) as Article[]
-      const idsOf = (role: string) => {
-        const root = cats.find((c) => c.role === role)
+      const idsOf = (role: string, fallbackName: string) => {
+        const root =
+          cats.find((c) => c.role === role) ??
+          cats.find((c) => !c.parent_id && c.name === fallbackName)
         if (!root) return null
         // 小カテゴリーの記事も親の割り当てに含める
         const childIds = cats.filter((c) => c.parent_id === root.id).map((c) => c.id)
         return new Set([root.id, ...childIds])
       }
-      const memberIds = idsOf('member')
-      const guideIds = idsOf('guide')
+      const memberIds = idsOf('member', 'メンバーコンテンツ')
+      const guideIds = idsOf('guide', '使い方ガイド')
 
       // 割り当てたカテゴリーの記事だけを出す。
       // 未割り当てなら空にして、設定していないことが画面で分かるようにする。
@@ -391,7 +519,7 @@ export default function DashboardPage() {
       const channelIds = Object.keys(cmap)
 
       const [msgsRes, datesRes, responsesRes] = await Promise.all([
-        // 直近の投稿を多めに取り、この中からリアクションの多い順に 5 件選ぶ。
+        // 直近の投稿を多めに取り、ここから新着順／人気順それぞれを作る。
         // 「人気」を全期間で見ると古い投稿が居座るので、直近に限る。
         channelIds.length > 0
           ? supabase
@@ -452,12 +580,7 @@ export default function DashboardPage() {
           ...m,
           reaction_count: countBy.get(`${m.channel_id}__${m.created_at}`) ?? 0,
         }))
-        withCount.sort(
-          (a, b) =>
-            b.reaction_count - a.reaction_count ||
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
-        setHotMessages(withCount.slice(0, 5))
+        setRecentMessages(withCount)
       }
 
       setLoading(false)
@@ -491,8 +614,51 @@ export default function DashboardPage() {
     load()
   }, [slackUserId])
 
-  const memberCategory = useMemo(() => categories.find((c) => c.role === 'member') ?? null, [categories])
-  const guideCategory = useMemo(() => categories.find((c) => c.role === 'guide') ?? null, [categories])
+  /**
+   * ブロックに出すカテゴリー。note のカテゴリー管理で役割を割り当てたものを優先し、
+   * 未割り当てなら同名のカテゴリー（「メンバーコンテンツ」「使い方ガイド」）を使う。
+   */
+  const memberCategory = useMemo(
+    () =>
+      categories.find((c) => c.role === 'member') ??
+      categories.find((c) => !c.parent_id && c.name === 'メンバーコンテンツ') ??
+      null,
+    [categories]
+  )
+  const guideCategory = useMemo(
+    () =>
+      categories.find((c) => c.role === 'guide') ??
+      categories.find((c) => !c.parent_id && c.name === '使い方ガイド') ??
+      null,
+    [categories]
+  )
+  /** ポップアップを開く。記事は初回だけ読む */
+  async function openPointList() {
+    setPointListOpen(true)
+    if (pointListArticle !== undefined) return
+    setPointListLoading(true)
+    const { data } = await supabase
+      .from('articles')
+      .select('id, title, content')
+      .eq('published', true)
+      .ilike('title', `%${POINT_LIST_TITLE}%`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    setPointListArticle((data as { id: string; title: string; content: string } | null) ?? null)
+    setPointListLoading(false)
+  }
+
+  /** 投稿を「にのみー」と「それ以外」に分ける。並び順は各ブロックのタブで決める */
+  const ownerMessages = useMemo(
+    () => recentMessages.filter((m) => isOwnerPost(m.slack_user_id, m.user_name)),
+    [recentMessages]
+  )
+  const memberMessages = useMemo(
+    () => recentMessages.filter((m) => !isOwnerPost(m.slack_user_id, m.user_name)),
+    [recentMessages]
+  )
+
   /** 専用ブロックを持つカテゴリーは「学びのコンテンツ」に出さない（同じものが二度並ぶため） */
   const otherCategories = useMemo(() => categories.filter((c) => !c.role), [categories])
 
@@ -639,61 +805,21 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* ── 投稿 ── */}
-        <section className="mb-10">
-          <SectionHead
-            icon={<MessageSquare size={20} />}
-            title="投稿"
-            href="/chat"
-            linkLabel="チャットへ"
-          />
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 animate-pulse rounded-2xl bg-white" />
-              ))}
-            </div>
-          ) : hotMessages.length === 0 ? (
-            <EmptyNote>投稿がありません。</EmptyNote>
-          ) : (
-            <ul className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
-              {hotMessages.map((msg) => (
-                <li key={msg.id} className="border-b border-gray-50 last:border-b-0">
-                  <Link
-                    href={`/chat?channel=${msg.channel_id}`}
-                    className="flex items-start gap-3 px-5 py-4 transition-colors hover:bg-surface-muted"
-                  >
-                    <Avatar
-                      src={msg.avatar_url ?? null}
-                      name={msg.user_name}
-                      size={40}
-                      className="mt-0.5 flex-shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 leading-relaxed text-gray-800">
-                        {msg.content || '(添付ファイル)'}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-400">
-                        <span className="font-medium text-gray-500">{msg.user_name}</span>
-                        {msg.reaction_count > 0 && (
-                          <span className="inline-flex items-center gap-1 text-accel-active">
-                            <Heart size={13} />
-                            {msg.reaction_count}
-                          </span>
-                        )}
-                        <span className="inline-flex items-center gap-0.5 rounded-full bg-surface-muted px-2 py-0.5 text-xs">
-                          <Hash size={11} />
-                          {channelMap[msg.channel_id] ?? ''}
-                        </span>
-                        <span>{format(new Date(msg.created_at), 'M/d', { locale: ja })}</span>
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* ── 投稿（にのみー／メンバー） ── */}
+        <PostBlock
+          title="にのみーの投稿"
+          loading={loading}
+          messages={ownerMessages}
+          channelMap={channelMap}
+          emptyText="にのみーの投稿はまだありません。"
+        />
+        <PostBlock
+          title="メンバーの投稿"
+          loading={loading}
+          messages={memberMessages}
+          channelMap={channelMap}
+          emptyText="メンバーの投稿はまだありません。"
+        />
 
         {/* ── 動画 ── */}
         <section className="mb-10">
@@ -810,12 +936,21 @@ export default function DashboardPage() {
                 <Award size={20} />
               </span>
               <h2 className="text-lg font-bold">実務従事更新ポイント</h2>
-              <Link
-                href={slackUserId ? `/members/${slackUserId}` : '/members'}
-                className="ml-auto flex shrink-0 items-center gap-1 text-sm font-semibold text-white/90 hover:text-white hover:underline"
-              >
-                履歴を見る <ArrowRight size={14} />
-              </Link>
+              <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={openPointList}
+                  className="flex items-center gap-1 text-sm font-semibold text-white/90 hover:text-white hover:underline"
+                >
+                  <ListChecks size={15} /> {POINT_LIST_TITLE}
+                </button>
+                <Link
+                  href={slackUserId ? `/members/${slackUserId}` : '/members'}
+                  className="flex items-center gap-1 text-sm font-semibold text-white/90 hover:text-white hover:underline"
+                >
+                  履歴を見る <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
 
             {pointsLoading ? (
@@ -943,13 +1078,13 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* ── ビジカレフォト ── */}
+        {/* ── 活動写真 ── */}
         <section className="mb-10">
           <SectionHead
             icon={<ImageIcon size={20} />}
-            title="ビジカレフォト"
+            title="活動写真"
             href="/gallery"
-            linkLabel="ギャラリー"
+            linkLabel="すべて見る"
           />
           {loading ? (
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
@@ -1066,6 +1201,70 @@ export default function DashboardPage() {
             </Link>
           )}
         </section>
+
+      {/* 実務ポイント獲得リストのポップアップ */}
+      {pointListOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+          onClick={() => setPointListOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={POINT_LIST_TITLE}
+            onClick={(e) => e.stopPropagation()}
+            className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-xl sm:rounded-3xl"
+          >
+            <div className="flex items-center gap-3 border-b border-gray-100 px-5 py-4">
+              <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accel-lightest text-accel-text">
+                <ListChecks size={18} />
+              </span>
+              <h2 className="min-w-0 flex-1 truncate text-lg font-bold text-gray-900">
+                {pointListArticle?.title ?? POINT_LIST_TITLE}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setPointListOpen(false)}
+                aria-label="閉じる"
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              {pointListLoading || pointListArticle === undefined ? (
+                <div className="animate-pulse space-y-3">
+                  <div className="h-4 w-3/4 rounded bg-gray-100" />
+                  <div className="h-4 w-full rounded bg-gray-100" />
+                  <div className="h-4 w-5/6 rounded bg-gray-100" />
+                </div>
+              ) : pointListArticle === null ? (
+                <div className="py-6 text-center text-sm text-gray-500">
+                  <p>「{POINT_LIST_TITLE}」の記事がまだありません。</p>
+                  <p className="mt-2 text-gray-400">
+                    ビジカレnote の「使い方ガイド」に、このタイトルで記事を作成するとここに表示されます。
+                  </p>
+                </div>
+              ) : (
+                <div
+                  className="article-content"
+                  dangerouslySetInnerHTML={{ __html: pointListArticle.content }}
+                />
+              )}
+            </div>
+            {pointListArticle && (
+              <div className="border-t border-gray-100 px-5 py-3 text-right">
+                <Link
+                  href={`/articles/${pointListArticle.id}`}
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-accel-active hover:underline"
+                >
+                  記事ページで開く <ArrowRight size={14} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       </main>
     </div>
   )

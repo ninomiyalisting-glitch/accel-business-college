@@ -30,6 +30,7 @@ const GLOBAL_NAV = [
   { href: '/events', label: 'イベント' },
   { href: '/members', label: 'メンバー' },
   { href: '/articles', label: 'note' },
+  { href: '/gallery', label: '活動写真' },
   { href: '/ai-chat', label: 'AI に聞く' },
 ]
 
@@ -42,7 +43,7 @@ const NAV = [
   { href: '/members', label: 'メンバー' },
   { href: '/articles', label: 'note' },
   { href: '/ideas', label: 'アイデア' },
-  { href: '/gallery', label: 'ギャラリー' },
+  { href: '/gallery', label: '活動写真' },
   { href: '/ai-chat', label: 'AI に聞く' },
   { href: '/settings', label: '設定' },
 ]
@@ -62,7 +63,7 @@ const TITLES: { prefix: string; title: string; action?: { href: string; label: s
   { prefix: '/articles/new', title: '記事の作成' },
   { prefix: '/articles', title: 'ビジカレnote' },
   { prefix: '/ideas', title: 'アイデア' },
-  { prefix: '/gallery', title: 'ギャラリー' },
+  { prefix: '/gallery', title: '活動写真' },
   { prefix: '/ai-chat', title: 'AI に聞く' },
   { prefix: '/settings', title: '設定' },
   { prefix: '/admin', title: '管理画面' },

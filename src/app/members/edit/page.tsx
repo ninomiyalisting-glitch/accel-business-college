@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Save, LogIn } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { SOCIAL_SERVICES, type SocialKey } from '@/lib/socialLinks'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 
@@ -19,6 +20,10 @@ interface FormData {
   availability: string
   appeal: string
 }
+
+/** SNS・外部リンク。FormData とは別に持つ（項目が増えても本文の並びを崩さないため） */
+type SocialForm = Record<SocialKey, string>
+const EMPTY_SOCIAL: SocialForm = { x_url: '', note_url: '', instagram_url: '', website_url: '' }
 
 const EMPTY: FormData = {
   prefecture: '',
@@ -48,6 +53,7 @@ export default function EditProfilePage() {
   const router = useRouter()
   const [slackUserId, setSlackUserId] = useState<string | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY)
+  const [social, setSocial] = useState<SocialForm>(EMPTY_SOCIAL)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -79,6 +85,12 @@ export default function EditProfilePage() {
           availability: data.availability ?? '',
           appeal: data.appeal ?? '',
         })
+        setSocial({
+          x_url: data.x_url ?? '',
+          note_url: data.note_url ?? '',
+          instagram_url: data.instagram_url ?? '',
+          website_url: data.website_url ?? '',
+        })
       }
       setLoading(false)
     }
@@ -95,6 +107,9 @@ export default function EditProfilePage() {
       updated_at: new Date().toISOString(),
       ...Object.fromEntries(
         Object.entries(form).map(([k, v]) => [k, v.trim() || null])
+      ),
+      ...Object.fromEntries(
+        Object.entries(social).map(([k, v]) => [k, v.trim() || null])
       ),
     }
 
@@ -196,6 +211,32 @@ export default function EditProfilePage() {
               )}
             </div>
           ))}
+
+          {/* SNS・外部リンク。URL か ID を入れると、メンバーページにボタンで出る */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">
+              SNS・リンク
+            </label>
+            <p className="text-xs text-gray-400 mb-3">
+              URL か ID を入れると、あなたのページにボタンで表示されます。空欄のものは出ません。
+            </p>
+            <div className="space-y-3">
+              {SOCIAL_SERVICES.map((sv) => (
+                <div key={sv.key} className="flex items-center gap-3">
+                  <span className="w-20 flex-shrink-0 text-sm font-bold text-gray-700">{sv.label}</span>
+                  <input
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="none"
+                    value={social[sv.key]}
+                    onChange={(e) => setSocial((prev) => ({ ...prev, [sv.key]: e.target.value }))}
+                    placeholder={sv.placeholder}
+                    className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:border-[#279300] focus:outline-none focus:ring-2 focus:ring-[#279300]/20"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mt-6 flex gap-3">

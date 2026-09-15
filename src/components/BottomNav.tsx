@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { href: '/videos', label: '動画' },
   { href: '/events', label: 'イベント' },
   { href: '/members', label: 'メンバー' },
-  { href: '/articles', label: 'ガイド' },
+  { href: '/articles', label: 'note' },
 ]
 
 const LAST_CHAT_KEY = 'abc_lastChatVisit'

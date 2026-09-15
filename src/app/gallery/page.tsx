@@ -378,7 +378,7 @@ export default function GalleryPage() {
             className="flex items-center gap-2 text-gray-600 hover:text-accel-active transition-colors"
           >
             <ArrowLeft size={20} />
-            <span className="text-sm font-medium">ギャラリーに戻る</span>
+            <span className="text-sm font-medium">活動写真に戻る</span>
           </button>
           <span className="text-lg font-bold text-gray-900">{selectedCategory.name}</span>
         </div>
@@ -390,7 +390,7 @@ export default function GalleryPage() {
           <>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">フォトギャラリー</h1>
+                <h1 className="text-xl font-bold text-gray-900">活動写真</h1>
                 <p className="text-gray-400 text-sm mt-0.5">みんなの写真をシェアしよう</p>
               </div>
               {userName && (

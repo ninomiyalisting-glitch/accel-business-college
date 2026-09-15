@@ -8,6 +8,8 @@ import { format } from 'date-fns'
 import { ja } from 'date-fns/locale'
 import { supabase } from '@/lib/supabase'
 import PracticePoints from '@/components/PracticePoints'
+import SocialButtons from '@/components/SocialButtons'
+import type { SocialFields } from '@/lib/socialLinks'
 import { SLACK_TEAM_ID } from '@/lib/slackWorkspace'
 
 const SLACK_USER_KEY = 'abc_slackUser'
@@ -38,6 +40,9 @@ interface MemberProfile {
   availability: string | null
   appeal: string | null
 }
+
+/** SNS の列は後から足したので、まだ無い環境でも動くよう別型で受ける */
+type MemberProfileRow = MemberProfile & SocialFields
 
 function getAvatarColor(name: string): string {
   const colors = [
@@ -75,7 +80,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
   const router = useRouter()
 
   const [user, setUser] = useState<DBUser | null>(null)
-  const [profile, setProfile] = useState<MemberProfile | null>(null)
+  const [profile, setProfile] = useState<MemberProfileRow | null>(null)
   const [recentMessages, setRecentMessages] = useState<RecentMessage[]>([])
   const [channelMap, setChannelMap] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
@@ -98,7 +103,7 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
       if (!userRes.data) { router.push('/members'); return }
       const u = userRes.data as DBUser
       setUser(u)
-      setProfile(profileRes.data as MemberProfile | null)
+      setProfile(profileRes.data as MemberProfileRow | null)
 
       // Fetch recent messages by display_name
       const [msgsRes, channelsRes] = await Promise.all([
@@ -196,6 +201,9 @@ export default function MemberDetailPage({ params }: { params: Promise<{ slack_u
             {!profile && (
               <p className="mt-3 text-gray-400">プロフィールはまだ入力されていません。</p>
             )}
+
+            {/* SNS・外部リンク。登録があるときだけ出る */}
+            <SocialButtons fields={profile} className="mt-4" />
 
             <button
               onClick={handleSlackDM}
