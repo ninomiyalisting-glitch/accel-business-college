@@ -37,6 +37,9 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 /** 並び順。sort_order が同じなら名前で決めて、順序が揺れないようにする */
+/** 1カテゴリーにつき一覧へ並べる記事の上限。超えた分はカテゴリーページへ送る */
+const NOTE_MAX = 6
+
 function byOrder(a: Category, b: Category): number {
   return a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'ja')
 }
@@ -648,15 +651,25 @@ function ArticlesContent() {
                                 記事はまだありません
                               </div>
                             )}
-                            {!childCollapsed && (
-                              <div className="grid grid-cols-2 gap-4 bg-gray-50/50 px-4 py-4 lg:grid-cols-4">
-                                {cs.articles.map((article) => (
-                                  <ArticleCard
-                                    key={article.id}
-                                    article={article}
-                                    category={cs.category}
-                                  />
-                                ))}
+                            {!childCollapsed && cs.articles.length > 0 && (
+                              <div className="bg-gray-50/50 px-4 py-4">
+                                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                                  {cs.articles.slice(0, NOTE_MAX).map((article) => (
+                                    <ArticleCard
+                                      key={article.id}
+                                      article={article}
+                                      category={cs.category}
+                                    />
+                                  ))}
+                                </div>
+                                {cs.articles.length > NOTE_MAX && (
+                                  <Link
+                                    href={`/articles/category/${cs.category.id}`}
+                                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#279300] hover:underline"
+                                  >
+                                    すべて見る（{cs.articles.length}件）
+                                  </Link>
+                                )}
                               </div>
                             )}
                           </div>
@@ -672,17 +685,27 @@ function ArticlesContent() {
                       {/* 親カテゴリー直下の記事 (小カテゴリーに属さない記事) */}
                       {section.directArticles.length > 0 && (
                         <div
-                          className={`grid grid-cols-2 gap-4 px-4 py-4 lg:grid-cols-4 ${
+                          className={`px-4 py-4 ${
                             section.children.length > 0 ? 'border-t border-gray-100' : ''
                           }`}
                         >
-                          {section.directArticles.map((article) => (
-                            <ArticleCard
-                              key={article.id}
-                              article={article}
-                              category={article.article_categories}
-                            />
-                          ))}
+                          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                            {section.directArticles.slice(0, NOTE_MAX).map((article) => (
+                              <ArticleCard
+                                key={article.id}
+                                article={article}
+                                category={article.article_categories}
+                              />
+                            ))}
+                          </div>
+                          {section.directArticles.length > NOTE_MAX && section.key !== UNCATEGORIZED_KEY && (
+                            <Link
+                              href={`/articles/category/${section.key}`}
+                              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#279300] hover:underline"
+                            >
+                              すべて見る（{section.directArticles.length}件）
+                            </Link>
+                          )}
                         </div>
                       )}
                     </div>
@@ -715,7 +738,13 @@ function ArticlesContent() {
                   placeholder="例：マーケティング"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
                   autoFocus
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreateCategory()}
+                  onKeyDown={(e) => {
+                    // 日本語入力の変換確定でも Enter が飛んでくる
+                    if (e.key !== 'Enter') return
+                    if (e.nativeEvent.isComposing || e.keyCode === 229) return
+                    e.preventDefault()
+                    handleCreateCategory()
+                  }}
                 />
               </div>
 

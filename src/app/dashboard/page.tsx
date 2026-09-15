@@ -36,6 +36,9 @@ const USER_NAME_KEY = 'abc_userName'
 /** 実務従事更新ポイントの目標。期限までにこの点数を貯める */
 const POINT_TARGET = 30
 
+/** ホームに並べる記事の上限。これを超える分はカテゴリーの一覧へ送る */
+const HOME_MAX = 6
+
 interface VimeoVideo {
   uri: string
   name: string
@@ -294,7 +297,7 @@ export default function DashboardPage() {
               'id, title, category, cover_image_url, created_by, created_by_avatar, deadline, confirmed_date, created_at'
             )
             .order('created_at', { ascending: false })
-            .limit(40),
+            .limit(60),
           // 記事は用途の割り当てを見てから絞るので、ここでは広めに取る
           supabase
             .from('articles')
@@ -350,11 +353,17 @@ export default function DashboardPage() {
       const memberIds = idsOf('member')
       const guideIds = idsOf('guide')
 
+      // 割り当てたカテゴリーの記事だけを出す。
+      // 未割り当てなら空にして、設定していないことが画面で分かるようにする。
       setArticles(
-        (memberIds ? allArticles.filter((a) => a.category_id && memberIds.has(a.category_id)) : allArticles).slice(0, 5)
+        memberIds
+          ? allArticles.filter((a) => a.category_id && memberIds.has(a.category_id)).slice(0, HOME_MAX)
+          : []
       )
       setGuideArticles(
-        guideIds ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, 3) : []
+        guideIds
+          ? allArticles.filter((a) => a.category_id && guideIds.has(a.category_id)).slice(0, HOME_MAX)
+          : []
       )
       setNewMembers((membersRes.data ?? []) as MemberRow[])
       /**
@@ -484,6 +493,8 @@ export default function DashboardPage() {
 
   const memberCategory = useMemo(() => categories.find((c) => c.role === 'member') ?? null, [categories])
   const guideCategory = useMemo(() => categories.find((c) => c.role === 'guide') ?? null, [categories])
+  /** 専用ブロックを持つカテゴリーは「学びのコンテンツ」に出さない（同じものが二度並ぶため） */
+  const otherCategories = useMemo(() => categories.filter((c) => !c.role), [categories])
 
   /** 開催決定を先に、その後ろに調整中。終了は出さない */
   const shownEvents = useMemo(() => {
@@ -737,7 +748,7 @@ export default function DashboardPage() {
           <SectionHead
             icon={<BookOpen size={20} />}
             title={memberCategory?.name ?? 'メンバーコンテンツ'}
-            href={memberCategory ? `/articles?category=${memberCategory.id}` : '/articles'}
+            href={memberCategory ? `/articles/category/${memberCategory.id}` : '/articles'}
             linkLabel="一覧へ"
           />
           {loading ? (
@@ -747,7 +758,11 @@ export default function DashboardPage() {
               ))}
             </div>
           ) : articles.length === 0 ? (
-            <EmptyNote>記事がありません。</EmptyNote>
+            <EmptyNote>
+              {memberCategory
+                ? 'このカテゴリーにはまだ記事がありません。'
+                : 'ビジカレnote のカテゴリー編集で「メンバーコンテンツ」に出すカテゴリーを選んでください。'}
+            </EmptyNote>
           ) : (
             <ul className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
               {articles.map((a) => (
@@ -973,7 +988,7 @@ export default function DashboardPage() {
         </section>
 
         {/* ── 学びのコンテンツ ── */}
-        {categories.length > 0 && (
+        {otherCategories.length > 0 && (
           <section className="mb-10">
             <SectionHead
               icon={<Compass size={20} />}
@@ -982,10 +997,10 @@ export default function DashboardPage() {
               linkLabel="すべて見る"
             />
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {categories.map((c) => (
+              {otherCategories.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/articles?category=${c.id}`}
+                  href={`/articles/category/${c.id}`}
                   className="flex items-center gap-2.5 rounded-2xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm transition-colors hover:border-accel-secondary"
                 >
                   <span
@@ -1006,24 +1021,29 @@ export default function DashboardPage() {
           <SectionHead
             icon={<Users size={20} />}
             title="使い方ガイド"
-            href={guideCategory ? `/articles?category=${guideCategory.id}` : '/articles'}
+            href={guideCategory ? `/articles/category/${guideCategory.id}` : '/articles'}
             linkLabel={guideCategory ? 'すべて見る' : 'ビジカレnote'}
           />
           {guideArticles.length > 0 ? (
+            /* 著者や日付は出さず、1行ずつのコンパクトな並びにする */
             <ul className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
               {guideArticles.map((a) => (
                 <li key={a.id} className="border-b border-gray-50 last:border-b-0">
                   <Link
                     href={`/articles/${a.id}`}
-                    className="flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-muted"
+                    className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-muted"
                   >
                     <span
-                      className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${toneOf(a.title)}`}
+                      className={`flex h-10 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg ${toneOf(a.title)}`}
                     >
-                      <BookOpen size={18} />
+                      {a.cover_image_url ? (
+                        <img src={a.cover_image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <BookOpen size={16} />
+                      )}
                     </span>
-                    <p className="min-w-0 flex-1 truncate font-bold text-gray-900">{a.title}</p>
-                    <ChevronRight size={18} className="flex-shrink-0 text-gray-300" />
+                    <p className="min-w-0 flex-1 truncate font-semibold text-gray-900">{a.title}</p>
+                    <ChevronRight size={16} className="flex-shrink-0 text-gray-300" />
                   </Link>
                 </li>
               ))}
