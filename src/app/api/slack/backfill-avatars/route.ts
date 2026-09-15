@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { customAvatarsOf, pickAvatar } from '@/lib/avatarServer'
 import { createClient } from '@supabase/supabase-js'
 
 const ADMIN_SLACK_USER_ID = 'U058FM3EFE0'
@@ -80,11 +81,14 @@ export async function POST(req: NextRequest) {
   console.log(`[backfill-avatars] fetched ${members.length} members from Slack`)
 
   // 2. Upsert all members into users table (アバター無しのメンバーも含めて全員)
+  // アプリで設定した写真があるメンバーは、Slack の写真で上書きしない
+  const customAvatars = await customAvatarsOf(sb, members.map((m) => m.id))
   const upsertRows = members.map((m) => {
     const displayName =
       m.profile.display_name?.trim() || m.profile.real_name?.trim() || m.id
-    const avatarUrl =
+    const slackAvatar =
       m.profile.image_192 ?? m.profile.image_72 ?? m.profile.image_48 ?? null
+    const avatarUrl = pickAvatar(customAvatars.get(m.id), slackAvatar)
     return { slack_user_id: m.id, display_name: displayName, avatar_url: avatarUrl }
   })
 

@@ -86,3 +86,45 @@ export async function prepareImageForUpload(file: File): Promise<File> {
   const base = file.name.replace(/\.[^.]+$/, '') || 'photo'
   return new File([blob], `${base}.jpg`, { type: 'image/jpeg', lastModified: file.lastModified })
 }
+
+/** プロフィール写真の一辺。一覧は 200px 前後、メンバーページは 288px で使うので 512 で足りる */
+const AVATAR_EDGE = 512
+
+/**
+ * プロフィール写真用。中央を正方形に切り出して AVATAR_EDGE px の JPEG にする。
+ * HEIC が変換できない端末では prepareImageForUpload と同じエラーを投げる。
+ */
+export async function prepareAvatar(file: File): Promise<File> {
+  let source: ImageBitmap | HTMLImageElement
+  try {
+    source = await decode(file)
+  } catch {
+    throw new Error(
+      isHeic(file)
+        ? 'この端末では HEIC 形式を変換できません。JPEG に変換してから選んでください。'
+        : 'この画像は読み込めませんでした。別の画像を選んでください。'
+    )
+  }
+  const w = 'naturalWidth' in source ? source.naturalWidth : source.width
+  const h = 'naturalHeight' in source ? source.naturalHeight : source.height
+  if (!w || !h) throw new Error('この画像は読み込めませんでした。別の画像を選んでください。')
+
+  const side = Math.min(w, h)
+  const sx = Math.round((w - side) / 2)
+  const sy = Math.round((h - side) / 2)
+  const edge = Math.min(AVATAR_EDGE, side)
+
+  const canvas = document.createElement('canvas')
+  canvas.width = edge
+  canvas.height = edge
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('画像の変換に失敗しました')
+  ctx.drawImage(source, sx, sy, side, side, 0, 0, edge, edge)
+  if ('close' in source) source.close()
+
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.9)
+  )
+  if (!blob) throw new Error('画像の変換に失敗しました')
+  return new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+}

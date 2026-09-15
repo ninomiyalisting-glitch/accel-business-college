@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { customAvatarOf, pickAvatar } from '@/lib/avatarServer'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
@@ -619,10 +620,12 @@ async function upsertSlackUser(u: SlackUserPayload): Promise<void> {
     u.profile?.display_name?.trim() ||
     u.profile?.real_name?.trim() ||
     u.id
-  const avatarUrl =
+  const slackAvatar =
     u.profile?.image_192 ?? u.profile?.image_72 ?? u.profile?.image_48 ?? null
 
   const sb = getSupabase()
+  // アプリで設定した写真があれば、Slack の写真で上書きしない
+  const avatarUrl = pickAvatar(await customAvatarOf(sb, u.id), slackAvatar)
   const { error } = await sb
     .from('users')
     .upsert(

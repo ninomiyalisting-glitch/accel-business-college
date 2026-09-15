@@ -1,11 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, LogIn } from 'lucide-react'
+import { ArrowLeft, Save, LogIn, Camera, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { SOCIAL_SERVICES, type SocialKey } from '@/lib/socialLinks'
+import { prepareAvatar } from '@/lib/imagePrep'
+import Avatar from '@/components/Avatar'
 
 const SLACK_USER_KEY = 'abc_slackUser'
 
@@ -54,6 +56,13 @@ export default function EditProfilePage() {
   const [slackUserId, setSlackUserId] = useState<string | null>(null)
   const [form, setForm] = useState<FormData>(EMPTY)
   const [social, setSocial] = useState<SocialForm>(EMPTY_SOCIAL)
+  /** プロフィール写真。表示中の URL と、アプリで設定したものかどうか */
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [hasCustomAvatar, setHasCustomAvatar] = useState(false)
+  const [displayName, setDisplayName] = useState('')
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -61,7 +70,12 @@ export default function EditProfilePage() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SLACK_USER_KEY)
-      if (saved) setSlackUserId(JSON.parse(saved).slack_user_id ?? null)
+      if (saved) {
+        const u = JSON.parse(saved) as { slack_user_id?: string; display_name?: string; avatar_url?: string | null }
+        setSlackUserId(u.slack_user_id ?? null)
+        setDisplayName(u.display_name ?? '')
+        setAvatarUrl(u.avatar_url ?? null)
+      }
     } catch { /* ignore */ }
   }, [])
 
@@ -85,6 +99,10 @@ export default function EditProfilePage() {
           availability: data.availability ?? '',
           appeal: data.appeal ?? '',
         })
+        if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url)
+          setHasCustomAvatar(true)
+        }
         setSocial({
           x_url: data.x_url ?? '',
           note_url: data.note_url ?? '',
@@ -96,6 +114,60 @@ export default function EditProfilePage() {
     }
     load()
   }, [slackUserId])
+
+  /** localStorage の自分情報の写真を差し替える。ヘッダーやホームに即反映するため */
+  function rememberAvatar(url: string | null) {
+    try {
+      const saved = localStorage.getItem(SLACK_USER_KEY)
+      if (!saved) return
+      const u = JSON.parse(saved)
+      localStorage.setItem(SLACK_USER_KEY, JSON.stringify({ ...u, avatar_url: url }))
+      // ヘッダーのアイコンも同じ画面内で差し替わるように知らせる
+      window.dispatchEvent(new CustomEvent('abc:user-updated'))
+    } catch { /* ignore */ }
+  }
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const original = e.target.files?.[0]
+    e.target.value = ''
+    if (!original) return
+    setAvatarBusy(true)
+    setAvatarError(null)
+    try {
+      // 中央を正方形に切って 512px の JPEG にしてから送る
+      const file = await prepareAvatar(original)
+      const body = new FormData()
+      body.append('file', file)
+      const res = await fetch('/api/me/avatar', { method: 'POST', body })
+      const json = (await res.json()) as { avatar_url?: string; error?: string }
+      if (!res.ok || !json.avatar_url) throw new Error(json.error ?? '保存に失敗しました')
+      setAvatarUrl(json.avatar_url)
+      setHasCustomAvatar(true)
+      rememberAvatar(json.avatar_url)
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : '保存に失敗しました')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    if (!confirm('アプリで設定した写真を削除して、Slack の写真に戻しますか？')) return
+    setAvatarBusy(true)
+    setAvatarError(null)
+    try {
+      const res = await fetch('/api/me/avatar', { method: 'DELETE' })
+      const json = (await res.json()) as { avatar_url?: string | null; error?: string }
+      if (!res.ok) throw new Error(json.error ?? '削除に失敗しました')
+      setAvatarUrl(json.avatar_url ?? null)
+      setHasCustomAvatar(false)
+      rememberAvatar(json.avatar_url ?? null)
+    } catch (err) {
+      setAvatarError(err instanceof Error ? err.message : '削除に失敗しました')
+    } finally {
+      setAvatarBusy(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!slackUserId || saving) return
@@ -185,6 +257,59 @@ export default function EditProfilePage() {
             ✓ プロフィールを保存しました
           </div>
         )}
+
+        {/* プロフィール写真。保存ボタンとは独立して、選んだ時点で反映される */}
+        <div className="mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <label className="block text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+            プロフィール写真
+          </label>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              <Avatar src={avatarUrl} name={displayName} size={88} className="ring-2 ring-gray-100" />
+              {avatarBusy && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70">
+                  <div className="w-6 h-6 border-2 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={avatarBusy}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Camera size={15} /> 写真を選ぶ
+                </button>
+                {hasCustomAvatar && (
+                  <button
+                    type="button"
+                    onClick={handleAvatarRemove}
+                    disabled={avatarBusy}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-60 text-gray-600 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Trash2 size={15} /> Slack の写真に戻す
+                  </button>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+                {hasCustomAvatar
+                  ? 'アプリで設定した写真を表示しています。'
+                  : 'いまは Slack の写真を表示しています。ここで選ぶとアプリ内の表示が置き換わります。'}
+                正方形に切り抜かれます。
+              </p>
+              {avatarError && <p className="mt-2 text-xs text-red-600">{avatarError}</p>}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarPick}
+              />
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {FIELDS.map(({ key, label, placeholder, multiline, rows }) => (

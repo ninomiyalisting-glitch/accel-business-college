@@ -11,6 +11,28 @@ function getBaseUrl(request: NextRequest): string {
   return `${proto}://${host}`
 }
 
+/**
+ * アプリで設定したプロフィール写真。無ければ null。
+ * これがあるときは Slack の写真で users.avatar_url を上書きしない。
+ */
+async function customAvatarOf(slackUserId: string): Promise<string | null> {
+  try {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/member_profiles`)
+    url.searchParams.set('select', 'avatar_url')
+    url.searchParams.set('slack_user_id', `eq.${slackUserId}`)
+    url.searchParams.set('limit', '1')
+    const res = await fetch(url.toString(), {
+      headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return null
+    const rows = (await res.json()) as { avatar_url: string | null }[]
+    return rows[0]?.avatar_url ?? null
+  } catch {
+    return null
+  }
+}
+
 async function upsertUser(slackUserId: string, displayName: string, avatarUrl: string, slackToken: string) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
     method: 'POST',
@@ -122,8 +144,10 @@ export async function GET(request: NextRequest) {
   console.log('[slack/callback] displayName:', displayName, 'avatarUrl:', avatarUrl ? 'present' : 'missing')
 
   // Supabase に保存（失敗しても続行）
+  // アプリで設定した写真があればそれを表示に使う（Slack の写真で上書きしない）
+  const shownAvatar = (await customAvatarOf(slackUserId)) ?? avatarUrl
   try {
-    await upsertUser(slackUserId, displayName, avatarUrl, userToken)
+    await upsertUser(slackUserId, displayName, shownAvatar, userToken)
   } catch (e) {
     console.error('[slack/callback] upsertUser exception:', e)
   }
@@ -133,7 +157,7 @@ export async function GET(request: NextRequest) {
     login: 'success',
     slack_user_id: slackUserId,
     display_name: displayName,
-    avatar_url: avatarUrl,
+    avatar_url: shownAvatar,
   })
   if (state) params.set('channel', state)
 

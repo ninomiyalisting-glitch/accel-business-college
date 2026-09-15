@@ -84,13 +84,19 @@ export default function AppHeader() {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SLACK_USER_KEY)
-      if (raw) setAvatar((JSON.parse(raw) as SlackUser).avatar_url ?? null)
-      setName(localStorage.getItem(USER_NAME_KEY) ?? '')
-    } catch {
-      /* 表示だけなので失敗しても無視 */
+    const read = () => {
+      try {
+        const raw = localStorage.getItem(SLACK_USER_KEY)
+        if (raw) setAvatar((JSON.parse(raw) as SlackUser).avatar_url ?? null)
+        setName(localStorage.getItem(USER_NAME_KEY) ?? '')
+      } catch {
+        /* 表示だけなので失敗しても無視 */
+      }
     }
+    read()
+    // プロフィール写真を変えたときに、ページ遷移なしでアイコンを差し替える
+    window.addEventListener('abc:user-updated', read)
+    return () => window.removeEventListener('abc:user-updated', read)
   }, [])
 
   useEffect(() => { setOpen(false) }, [pathname])
