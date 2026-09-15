@@ -363,22 +363,32 @@ function ArticlesContent() {
     const articleCount = count ?? 0
     const childCount = categories.filter((c) => c.parent_id === cat.id).length
 
+    /**
+     * 記事の行き先。
+     * 小カテゴリーを消すときは親の大カテゴリーへ移す（未分類に落とさない）。
+     * 大カテゴリーを消すときは親が無いので未分類になる。
+     */
+    const parent = cat.parent_id ? categories.find((c) => c.id === cat.parent_id) ?? null : null
+    const destination = parent ?? null
+
     let message = `カテゴリー「${cat.name}」を削除しますか？\n\nこの操作は取り消せません。`
     if (articleCount > 0) {
-      message += `\n\n⚠️ このカテゴリーには ${articleCount} 件の記事があります。\n記事は削除されず、「未分類」に移動します。`
+      message += destination
+        ? `\n\n⚠️ このカテゴリーには ${articleCount} 件の記事があります。\n記事は削除されず、大カテゴリー「${destination.name}」に移動します。`
+        : `\n\n⚠️ このカテゴリーには ${articleCount} 件の記事があります。\n記事は削除されず、「未分類」に移動します。`
     }
     if (childCount > 0) {
       message += `\n\n⚠️ ${childCount} 件の小カテゴリーがあります。\n小カテゴリーは削除されず、大カテゴリーに昇格します。`
     }
     if (!confirm(message)) return
 
-    // 記事の category_id を明示的に NULL にしてから削除（記事が消えないことを保証）
+    // 記事を先に移してから削除（記事が消えないことを保証）
     if (articleCount > 0) {
       const { error: unlinkError } = await supabase
         .from('articles')
-        .update({ category_id: null })
+        .update({ category_id: destination?.id ?? null })
         .eq('category_id', cat.id)
-      if (unlinkError) { alert('記事の紐付け解除に失敗しました'); return }
+      if (unlinkError) { alert('記事の移動に失敗しました'); return }
     }
 
     const { error } = await supabase.from('article_categories').delete().eq('id', cat.id)
@@ -390,7 +400,11 @@ function ArticlesContent() {
         .map((c) => (c.parent_id === cat.id ? { ...c, parent_id: null } : c))
     )
     setArticles((prev) =>
-      prev.map((a) => (a.category_id === cat.id ? { ...a, category_id: null, article_categories: null } : a))
+      prev.map((a) =>
+        a.category_id === cat.id
+          ? { ...a, category_id: destination?.id ?? null, article_categories: destination }
+          : a
+      )
     )
     if (editingCat?.id === cat.id) setEditingCat(null)
   }
