@@ -14,7 +14,14 @@ const notoSansJP = Noto_Sans_JP({
   display: "swap",
 });
 
+/**
+ * スマホのステータスバー（時刻・電池の帯）の色は themeColor。
+ * ブラウザで開いたときはこの値、ホーム画面に追加したアプリは manifest.json の
+ * theme_color が使われる（追加した時点の値が端末に保存されるので、色を変えたら
+ * 一度削除して追加し直す必要がある）。2 つの値は必ず揃えること。
+ */
 export const viewport: Viewport = {
+  themeColor: "#006899",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -58,9 +65,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" className={`h-full ${notoSansJP.variable}`}>
-      <head>
-        <meta name="theme-color" content="#006899" />
-      </head>
       {/* 下余白は BodyPadding が付ける。body に直接付けると、
           自前で高さを計算するチャット画面で二重になり空白ができる */}
       <body className="h-full">
