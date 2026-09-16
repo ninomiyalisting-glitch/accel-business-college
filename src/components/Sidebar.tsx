@@ -113,7 +113,7 @@ export default function Sidebar({
   }, [channels, sortOrder, channelStats])
 
   return (
-    <div className="flex flex-col h-full bg-[#f7faf2] text-gray-800 w-full md:w-64 flex-shrink-0 border-r border-gray-200">
+    <div className="flex flex-col h-full bg-[#f3f8fc] text-gray-800 w-full md:w-64 flex-shrink-0 border-r border-gray-200">
       {/* ナビゲーションの枠は撤去した。
           サイト名・ダッシュボード・動画・イベント・チャットは共通ヘッダーと
           重複し、AI と管理画面もそれぞれヘッダーと設定に移したため。
@@ -130,7 +130,7 @@ export default function Sidebar({
                 onClick={() => setShowSortMenu((v) => !v)}
                 className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors ${
                   sortOrder !== 'default'
-                    ? 'text-[#1f7a00] bg-[#279300]/10'
+                    ? 'text-[#006899] bg-[#007cb4]/10'
                     : 'text-gray-400 hover:text-gray-600 hover:bg-gray-200'
                 }`}
                 title="並び替え"
@@ -149,7 +149,7 @@ export default function Sidebar({
                         onClick={() => handleSortChange(order)}
                         className={`w-full text-left px-3 py-2 text-xs transition-colors ${
                           sortOrder === order
-                            ? 'text-[#1f7a00] font-semibold bg-[#279300]/5'
+                            ? 'text-[#006899] font-semibold bg-[#007cb4]/5'
                             : 'text-gray-700 hover:bg-gray-50'
                         }`}
                       >
@@ -176,8 +176,8 @@ export default function Sidebar({
                     onClick={() => onSelectChannel(channel)}
                     className={`w-full flex items-center gap-2 px-4 py-1.5 text-sm rounded-lg mx-1 transition-colors duration-100 text-left ${
                       isActive
-                        ? 'bg-[#1f7a00] text-white font-semibold'
-                        : 'text-gray-600 hover:bg-[#e8f5c9] hover:text-[#1f7a00]'
+                        ? 'bg-[#006899] text-white font-semibold'
+                        : 'text-gray-600 hover:bg-[#e3f2fb] hover:text-[#006899]'
                     }`}
                     style={{ width: 'calc(100% - 8px)' }}
                   >
@@ -186,7 +186,7 @@ export default function Sidebar({
                     {/* 投稿数バッジ（activity sort時のみ） */}
                     {sortOrder === 'activity' && stats?.count7d > 0 && (
                       <span className={`text-[14px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-[#1f7a00]/10 text-[#1f7a00]'
+                        isActive ? 'bg-white/20 text-white' : 'bg-[#006899]/10 text-[#006899]'
                       }`}>
                         {stats.count7d}
                       </span>
@@ -205,7 +205,7 @@ export default function Sidebar({
           onClick={onUserNameClick}
           className="w-full flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-200 transition-colors group"
         >
-          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-[#279300]/10 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-[#007cb4]/10 flex items-center justify-center">
             {slackUser?.avatar_url ? (
               <Image
                 src={slackUser.avatar_url}
@@ -216,7 +216,7 @@ export default function Sidebar({
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
               />
             ) : (
-              <User size={14} className="text-[#1f7a00]" />
+              <User size={14} className="text-[#006899]" />
             )}
           </div>
           <div className="flex-1 min-w-0 text-left">

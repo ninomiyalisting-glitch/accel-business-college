@@ -13,7 +13,7 @@ const ADMIN_ID = 'U058FM3EFE0'
 const UNCATEGORIZED_KEY = '__uncategorized__'
 
 const PRESET_COLORS = [
-  '#279300', '#10b981', '#f59e0b', '#ef4444',
+  '#007cb4', '#10b981', '#f59e0b', '#ef4444',
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
   '#84cc16', '#6b7280',
 ]
@@ -75,7 +75,7 @@ interface ParentSection {
  */
 const CARD_TONES = [
   'bg-accel-lightest text-accel-secondary',
-  'bg-[#dff0c4] text-[#279300]',
+  'bg-[#d8f3ef] text-[#1d8a7b]',
   'bg-[#e6f2f8] text-[#0097DB]',
   'bg-[#f3f0dc] text-[#8a7f2e]',
   'bg-[#eae7f5] text-[#6b5fa8]',
@@ -492,7 +492,7 @@ function ArticlesContent() {
 
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       {/* 見出しは共通ヘッダーが出す */}
       {myName && (
         <div className="max-w-content mx-auto px-4 pt-6 flex flex-wrap items-center gap-2.5">
@@ -514,7 +514,7 @@ function ArticlesContent() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="タイトル・著者で検索..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
           />
         </div>
 
@@ -525,7 +525,7 @@ function ArticlesContent() {
               onClick={() => setShowEmptyCats((v) => !v)}
               className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
                 showEmptyCats
-                  ? 'border-[#279300] bg-accel-lightest text-accel-deep'
+                  ? 'border-[#007cb4] bg-accel-lightest text-accel-deep'
                   : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
               }`}
             >
@@ -553,7 +553,7 @@ function ArticlesContent() {
             <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">{query ? '条件に一致する記事がありません' : 'まだ記事がありません'}</p>
             {myName && !query && (
-              <Link href="/articles/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors">
+              <Link href="/articles/new" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#006899] text-white rounded-xl text-sm font-medium hover:bg-[#004f75] transition-colors">
                 <Plus size={15} /> 最初の記事を書く
               </Link>
             )}
@@ -597,7 +597,7 @@ function ArticlesContent() {
                             if (cat) moveCategory(cat, -1)
                           }}
                           disabled={movingCatId !== null}
-                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#1f7a00] disabled:opacity-40"
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#006899] disabled:opacity-40"
                           title="上へ移動"
                         >
                           <ChevronUp size={12} />
@@ -609,7 +609,7 @@ function ArticlesContent() {
                             if (cat) moveCategory(cat, 1)
                           }}
                           disabled={movingCatId !== null}
-                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#1f7a00] disabled:opacity-40"
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-accel-lightest hover:text-[#006899] disabled:opacity-40"
                           title="下へ移動"
                         >
                           <ChevronDownIcon size={12} />
@@ -620,7 +620,7 @@ function ArticlesContent() {
                             const cat = categories.find((c) => c.id === section.key)
                             if (cat) openEditModal(cat)
                           }}
-                          className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-accel-lightest hover:text-[#1f7a00] text-gray-500 transition-colors flex-shrink-0"
+                          className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 hover:bg-accel-lightest hover:text-[#006899] text-gray-500 transition-colors flex-shrink-0"
                           title="カテゴリーを編集"
                         >
                           <Pencil size={11} />
@@ -663,7 +663,7 @@ function ArticlesContent() {
                                 <>
                                   <button
                                     onClick={(e) => { e.stopPropagation(); openEditModal(cs.category) }}
-                                    className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 hover:bg-accel-lightest hover:text-[#1f7a00] text-gray-400 transition-colors flex-shrink-0"
+                                    className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 hover:bg-accel-lightest hover:text-[#006899] text-gray-400 transition-colors flex-shrink-0"
                                     title="小カテゴリーを編集"
                                   >
                                     <Pencil size={11} />
@@ -698,7 +698,7 @@ function ArticlesContent() {
                                 {cs.articles.length > NOTE_MAX && (
                                   <Link
                                     href={`/articles/category/${cs.category.id}`}
-                                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#279300] hover:underline"
+                                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#007cb4] hover:underline"
                                   >
                                     すべて見る（{cs.articles.length}件）
                                   </Link>
@@ -734,7 +734,7 @@ function ArticlesContent() {
                           {section.directArticles.length > NOTE_MAX && section.key !== UNCATEGORIZED_KEY && (
                             <Link
                               href={`/articles/category/${section.key}`}
-                              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#279300] hover:underline"
+                              className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#007cb4] hover:underline"
                             >
                               すべて見る（{section.directArticles.length}件）
                             </Link>
@@ -769,7 +769,7 @@ function ArticlesContent() {
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
                   placeholder="例：マーケティング"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
                   autoFocus
                   onKeyDown={(e) => {
                     // 日本語入力の変換確定でも Enter が飛んでくる
@@ -786,7 +786,7 @@ function ArticlesContent() {
                 <select
                   value={newCatParentId}
                   onChange={(e) => setNewCatParentId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4] bg-white"
                 >
                   <option value="">なし（大カテゴリーとして作成）</option>
                   {categories.filter((c) => !c.parent_id).map((c) => (
@@ -803,7 +803,7 @@ function ArticlesContent() {
                   value={newCatDesc}
                   onChange={(e) => setNewCatDesc(e.target.value)}
                   placeholder="このカテゴリーの説明"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
                 />
               </div>
 
@@ -853,7 +853,7 @@ function ArticlesContent() {
               <button
                 onClick={handleCreateCategory}
                 disabled={savingCat || !newCatName.trim()}
-                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-xl transition-colors disabled:opacity-50"
+                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#006899] hover:bg-[#004f75] rounded-xl transition-colors disabled:opacity-50"
               >
                 {savingCat ? '作成中...' : '作成する'}
               </button>
@@ -883,7 +883,7 @@ function ArticlesContent() {
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
                     placeholder="例：マーケティング"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
                     autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && handleUpdateCategory()}
                   />
@@ -895,7 +895,7 @@ function ArticlesContent() {
                     value={editParentId}
                     onChange={(e) => setEditParentId(e.target.value)}
                     disabled={hasChildren}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300] bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4] bg-white disabled:bg-gray-50 disabled:text-gray-400"
                   >
                     <option value="">なし（大カテゴリー）</option>
                     {categories
@@ -918,7 +918,7 @@ function ArticlesContent() {
                     value={editDesc}
                     onChange={(e) => setEditDesc(e.target.value)}
                     placeholder="このカテゴリーの説明"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
                   />
                 </div>
 
@@ -976,8 +976,8 @@ function ArticlesContent() {
                           onClick={() => setCategoryRole(editingCat, opt.value)}
                           className={
                             on
-                              ? 'rounded-xl border-2 border-[#279300] bg-accel-lightest px-3 py-1.5 text-xs font-semibold text-accel-deep'
-                              : 'rounded-xl border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:border-[#279300]'
+                              ? 'rounded-xl border-2 border-[#007cb4] bg-accel-lightest px-3 py-1.5 text-xs font-semibold text-accel-deep'
+                              : 'rounded-xl border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:border-[#007cb4]'
                           }
                         >
                           {opt.label}
@@ -1001,7 +1001,7 @@ function ArticlesContent() {
                 <button
                   onClick={handleUpdateCategory}
                   disabled={savingEdit || !editName.trim()}
-                  className="flex-1 py-2.5 text-sm font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-xl transition-colors disabled:opacity-50"
+                  className="flex-1 py-2.5 text-sm font-medium text-white bg-[#006899] hover:bg-[#004f75] rounded-xl transition-colors disabled:opacity-50"
                 >
                   {savingEdit ? '保存中...' : '保存する'}
                 </button>

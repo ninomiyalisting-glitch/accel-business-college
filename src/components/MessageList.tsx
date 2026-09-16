@@ -777,7 +777,7 @@ function MessageBubble({
         <div className="flex items-center gap-2 mb-1">
           <button
             onClick={() => onMemberClick?.(memberInfo)}
-            className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#279300]/40 transition-all"
+            className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden focus:outline-none hover:ring-2 hover:ring-[#007cb4]/40 transition-all"
             title={displayName}
           >
             {avatarUrl && !avatarError ? (

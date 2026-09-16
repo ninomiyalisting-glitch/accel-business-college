@@ -87,7 +87,7 @@ export default function WelcomePage() {
         </Link>
         <a
           href={LOGIN_HREF}
-          className="flex items-center gap-2 rounded-lg bg-[#1f7a00] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#145200]"
+          className="flex items-center gap-2 rounded-lg bg-[#006899] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#004f75]"
         >
           Slackでログイン
         </a>
@@ -95,7 +95,7 @@ export default function WelcomePage() {
 
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-10 sm:px-6 sm:pt-14">
         {/* 見出し */}
-        <p className="text-sm font-semibold text-[#1f7a00]">入会された方へ</p>
+        <p className="text-sm font-semibold text-[#006899]">入会された方へ</p>
         <h1 className="mt-2 text-3xl font-bold leading-snug text-gray-900 sm:text-4xl">
           アプリへの入り方と使い方
         </h1>
@@ -109,15 +109,15 @@ export default function WelcomePage() {
           <h2 className="text-xl font-bold text-gray-900">アプリへの入り方</h2>
           <ol className="mt-5 space-y-4">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="flex gap-4 rounded-2xl border border-gray-100 bg-[#f7faf2] p-5">
-                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#1f7a00] text-base font-bold text-white">
+              <li key={s.title} className="flex gap-4 rounded-2xl border border-gray-100 bg-[#f3f8fc] p-5">
+                <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#006899] text-base font-bold text-white">
                   {i + 1}
                 </span>
                 <div className="min-w-0">
                   <h3 className="font-bold text-gray-900">{s.title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-gray-600">{s.body}</p>
                   {s.note && (
-                    <p className="mt-2 flex items-start gap-1.5 text-sm text-[#1f7a00]">
+                    <p className="mt-2 flex items-start gap-1.5 text-sm text-[#006899]">
                       <CheckCircle2 size={16} className="mt-0.5 flex-shrink-0" />
                       {s.note}
                     </p>
@@ -129,7 +129,7 @@ export default function WelcomePage() {
           <div className="mt-6 text-center">
             <a
               href={LOGIN_HREF}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#1f7a00] px-8 py-3.5 text-base font-semibold text-white shadow-md transition-colors hover:bg-[#145200] hover:shadow-lg"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#006899] px-8 py-3.5 text-base font-semibold text-white shadow-md transition-colors hover:bg-[#004f75] hover:shadow-lg"
             >
               Slackアカウントでログイン <ArrowRight size={18} />
             </a>
@@ -140,7 +140,7 @@ export default function WelcomePage() {
         {/* スマホ */}
         <section className="mt-12 rounded-2xl border border-gray-100 p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-            <Smartphone size={20} className="text-[#1f7a00]" />
+            <Smartphone size={20} className="text-[#006899]" />
             スマホではホーム画面に追加すると便利です
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-gray-600">
@@ -155,7 +155,7 @@ export default function WelcomePage() {
           <div className="mt-5 grid gap-4 sm:grid-cols-3">
             {FIRST_TASKS.map((t, i) => (
               <div key={t.title} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-                <span className="text-xs font-bold text-[#1f7a00]">STEP {i + 1}</span>
+                <span className="text-xs font-bold text-[#006899]">STEP {i + 1}</span>
                 <h3 className="mt-1 font-bold text-gray-900">{t.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-gray-600">{t.body}</p>
               </div>
@@ -168,8 +168,8 @@ export default function WelcomePage() {
           <h2 className="text-xl font-bold text-gray-900">アプリでできること</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             {FEATURES.map((f) => (
-              <div key={f.title} className="flex gap-3 rounded-2xl bg-[#f7faf2] p-4">
-                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[#1f7a00] shadow-sm">
+              <div key={f.title} className="flex gap-3 rounded-2xl bg-[#f3f8fc] p-4">
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[#006899] shadow-sm">
                   {f.icon}
                 </span>
                 <div className="min-w-0">
@@ -210,7 +210,7 @@ export default function WelcomePage() {
         <div className="mt-12 text-center">
           <a
             href={LOGIN_HREF}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1f7a00] px-8 py-3.5 text-base font-semibold text-white shadow-md transition-colors hover:bg-[#145200]"
+            className="inline-flex items-center gap-2 rounded-xl bg-[#006899] px-8 py-3.5 text-base font-semibold text-white shadow-md transition-colors hover:bg-[#004f75]"
           >
             Slackアカウントでログイン <ArrowRight size={18} />
           </a>

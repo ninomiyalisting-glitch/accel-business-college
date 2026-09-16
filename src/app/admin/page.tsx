@@ -184,7 +184,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-bottom-nav">
       {/* Header */}
-      <header className="bg-[#1f7a00] text-white px-4 h-14 flex items-center gap-3 shadow-md">
+      <header className="bg-[#006899] text-white px-4 h-14 flex items-center gap-3 shadow-md">
         <Link
           href="/dashboard"
           className="flex items-center gap-1.5 text-white/70 hover:text-white transition-colors"
@@ -206,7 +206,7 @@ export default function AdminPage() {
             <p className="text-gray-400 text-sm mb-6">管理画面にアクセスするにはSlackでログインしてください</p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#006899] text-white rounded-xl text-sm hover:bg-[#004f75] transition-colors"
             >
               ダッシュボードへ戻る
             </Link>
@@ -218,7 +218,7 @@ export default function AdminPage() {
             <p className="text-gray-400 text-sm mb-6">このページは管理者のみアクセスできます</p>
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#006899] text-white rounded-xl text-sm hover:bg-[#004f75] transition-colors"
             >
               <ArrowLeft size={15} />
               ダッシュボードへ戻る
@@ -241,7 +241,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="flex-1 bg-white rounded-xl border border-gray-100 shadow-sm p-4 text-center">
-                <div className="text-2xl font-bold text-[#1f7a00]">{channels.length}</div>
+                <div className="text-2xl font-bold text-[#006899]">{channels.length}</div>
                 <div className="text-xs text-gray-500 mt-0.5">合計</div>
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function AdminPage() {
                 <button
                   onClick={joinAllChannels}
                   disabled={joining}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-[#006899] hover:bg-[#004f75] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
                 >
                   {joining ? (
                     <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> 参加中...</>
@@ -382,7 +382,7 @@ export default function AdminPage() {
 
               {loading ? (
                 <div className="flex items-center justify-center py-16 gap-2 text-gray-400">
-                  <div className="w-5 h-5 border-2 border-gray-200 border-t-[#279300] rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-gray-200 border-t-[#007cb4] rounded-full animate-spin" />
                   <span className="text-sm">読み込み中...</span>
                 </div>
               ) : (
@@ -414,7 +414,7 @@ export default function AdminPage() {
                             isToggling
                               ? 'opacity-50 cursor-wait'
                               : hidden
-                              ? 'bg-[#1f7a00] hover:bg-[#145200] text-white'
+                              ? 'bg-[#006899] hover:bg-[#004f75] text-white'
                               : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                           }`}
                         >

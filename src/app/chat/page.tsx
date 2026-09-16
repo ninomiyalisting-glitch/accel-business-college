@@ -28,8 +28,8 @@ function tsKey(ts: string | null | undefined): string {
 export default function ChatPage() {
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center h-full bg-[#f7faf2]">
-        <div className="w-12 h-12 border-4 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-full bg-[#f3f8fc]">
+        <div className="w-12 h-12 border-4 border-[#007cb4]/30 border-t-[#007cb4] rounded-full animate-spin" />
       </div>
     }>
       <ChatContent />
@@ -651,9 +651,9 @@ function ChatContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full bg-[#f7faf2]">
+      <div className="flex items-center justify-center h-full bg-[#f3f8fc]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-12 h-12 border-4 border-[#007cb4]/30 border-t-[#007cb4] rounded-full animate-spin mx-auto mb-4" />
           <div className="text-gray-500 text-sm">読み込み中...</div>
         </div>
       </div>
@@ -664,7 +664,7 @@ function ChatContent() {
     // 高さは「画面 − 共通ヘッダー − フッター」。
     // h-full だと body の pb-bottom-nav と二重に効いて、
     // PC でフッターが無いのに下に空白が残る。
-    <div className="flex chat-shell overflow-hidden bg-[#f7faf2]">
+    <div className="flex chat-shell overflow-hidden bg-[#f3f8fc]">
       {showUserNameDialog && (
         <UserNameDialog
           onSubmit={handleSetUserName}
@@ -704,7 +704,7 @@ function ChatContent() {
               <p className="text-gray-700 font-medium">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-[#1f7a00] text-white rounded-lg hover:bg-[#145200] transition-colors text-sm"
+                className="mt-4 px-4 py-2 bg-[#006899] text-white rounded-lg hover:bg-[#004f75] transition-colors text-sm"
               >
                 再読み込み
               </button>

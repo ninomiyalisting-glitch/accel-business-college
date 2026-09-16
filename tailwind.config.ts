@@ -1,10 +1,12 @@
 import type { Config } from "tailwindcss";
 
 /**
- * アクセルパートナーズ共通デザイントークン
+ * ビジカレのデザイントークン
  * ここを変えると全ページ・全コンポーネントに一括反映される。
- * accel-dash（ポータル）と同じ値を使うこと。値の出典は
- * https://accel-dash.com/accel-design.css
+ *
+ * 2026-09 にグリーンからブルーへ統一した。基準色はスマホのフッターと同じ
+ * #007CB4（白文字 4.62:1）。accel-dash（ポータル）のグリーンとは別系統なので、
+ * ポータルの値をそのまま持ってこないこと。
  */
 const config: Config = {
   content: [
@@ -16,20 +18,20 @@ const config: Config = {
     extend: {
       colors: {
         accel: {
-          lightest: "#e8f5c9",
-          light: "#a8e67d",
-          secondary: "#6fd433",
-          hover: "#3db800",
-          primary: "#279300",
-          active: "#1f7a00",
-          text: "#145200",
-          dark: "#0d3800",
+          lightest: "#e3f2fb",
+          light: "#8fd3f4",
+          secondary: "#4ab8e8",
+          hover: "#0097db",
+          primary: "#007cb4",
+          active: "#006899",
+          text: "#004f75",
+          dark: "#063a55",
         },
         surface: {
           DEFAULT: "#ffffff",
-          muted: "#f7faf2",
+          muted: "#f3f8fc",
         },
-        "border-soft": "#dbe8c8",
+        "border-soft": "#cfe3f0",
         // フッター用のブルー。指定の #0097DB は白文字が 3.26:1 で
         // 本文サイズの基準（4.5）に届かないため、同じ色味で明度だけ下げた。
         // #007CB4 は白文字 4.62:1。ここより明るくすると読みにくくなる。

@@ -164,7 +164,7 @@ function greeting(): string {
  */
 const PLACEHOLDER_TONES = [
   'bg-accel-lightest text-accel-secondary',
-  'bg-[#dff0c4] text-accel-primary',
+  'bg-[#d8f3ef] text-[#1d8a7b]',
   'bg-[#e6f2f8] text-[#0097DB]',
   'bg-[#f3f0dc] text-[#8a7f2e]',
   'bg-[#eae7f5] text-[#6b5fa8]',
@@ -954,10 +954,10 @@ export default function DashboardPage() {
         </section>
 
         {/* ── 実務従事更新ポイント ── */}
-        <section className="mb-14 overflow-hidden rounded-3xl bg-gradient-to-br from-accel-text to-accel-primary text-white shadow-sm">
+        <section className="mb-14 overflow-hidden rounded-3xl border border-gray-100 bg-white text-gray-900 shadow-sm">
           <div className="px-6 py-6 sm:px-8 sm:py-7">
             <div className="mb-6 flex items-center gap-3">
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-white/15">
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accel-lightest text-accel-text">
                 <Award size={20} />
               </span>
               <h2 className="text-lg font-bold">実務従事更新ポイント</h2>
@@ -965,13 +965,13 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={openPointList}
-                  className="flex items-center gap-1 text-sm font-semibold text-white/90 hover:text-white hover:underline"
+                  className="flex items-center gap-1 text-sm font-semibold text-accel-active hover:underline"
                 >
                   <ListChecks size={15} /> {POINT_LIST_TITLE}
                 </button>
                 <Link
                   href={slackUserId ? `/members/${slackUserId}` : '/members'}
-                  className="flex items-center gap-1 text-sm font-semibold text-white/90 hover:text-white hover:underline"
+                  className="flex items-center gap-1 text-sm font-semibold text-accel-active hover:underline"
                 >
                   履歴を見る <ArrowRight size={14} />
                 </Link>
@@ -980,43 +980,43 @@ export default function DashboardPage() {
 
             {pointsLoading ? (
               <div className="animate-pulse space-y-4">
-                <div className="h-10 w-40 rounded bg-white/15" />
-                <div className="h-3 rounded-full bg-white/15" />
+                <div className="h-10 w-40 rounded bg-gray-100" />
+                <div className="h-3 rounded-full bg-gray-100" />
               </div>
             ) : !slackUserId ? (
-              <p className="text-white/80">
+              <p className="text-gray-600">
                 Slack アカウントでログインすると、あなたのポイント状況が表示されます。
               </p>
             ) : (
               <>
                 <div className="flex flex-wrap items-end gap-2">
-                  <span className="text-5xl font-bold leading-none tabular-nums">
+                  <span className="text-5xl font-bold leading-none tabular-nums text-accel-text">
                     {pointSummary.total}
                   </span>
-                  <span className="text-xl font-semibold text-white/70">
+                  <span className="text-xl font-semibold text-gray-400">
                     / {POINT_TARGET} ポイント
                   </span>
                   {pointSummary.remaining === 0 && (
-                    <span className="mb-1 ml-2 rounded-full bg-white px-3 py-1 text-sm font-bold text-accel-text">
+                    <span className="mb-1 ml-2 rounded-full bg-accel-lightest px-3 py-1 text-sm font-bold text-accel-text">
                       目標達成
                     </span>
                   )}
                 </div>
 
-                <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/20">
+                <div className="mt-5 h-3 overflow-hidden rounded-full bg-gray-100">
                   <div
-                    className="h-full rounded-full bg-white transition-all duration-700"
+                    className="h-full rounded-full bg-accel-primary transition-all duration-700"
                     style={{ width: `${pointSummary.percent}%` }}
                   />
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <div>
-                    <div className="text-sm text-white/60">残りポイント</div>
+                    <div className="text-sm text-gray-500">残りポイント</div>
                     <div className="text-2xl font-bold tabular-nums">{pointSummary.remaining}</div>
                   </div>
                   <div>
-                    <div className="text-sm text-white/60">期限</div>
+                    <div className="text-sm text-gray-500">期限</div>
                     <div className="text-2xl font-bold">
                       {renewalDeadline
                         ? format(new Date(`${renewalDeadline}T00:00:00`), 'yyyy/M/d')
@@ -1024,7 +1024,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-sm text-white/60">残り期間</div>
+                    <div className="text-sm text-gray-500">残り期間</div>
                     <div className="text-2xl font-bold">
                       {pointSummary.months === null
                         ? '—'
@@ -1036,8 +1036,8 @@ export default function DashboardPage() {
                 </div>
 
                 {!renewalDeadline && (
-                  <p className="mt-6 text-sm text-white/80">
-                    <Link href="/settings" className="font-semibold underline hover:text-white">
+                  <p className="mt-6 text-sm text-gray-600">
+                    <Link href="/settings" className="font-semibold text-accel-active underline hover:text-accel-text">
                       設定ページ
                     </Link>
                     で更新の期限日を登録すると、期限までの進捗が出ます。
@@ -1045,7 +1045,7 @@ export default function DashboardPage() {
                 )}
 
                 {renewalDeadline && pointSummary.remaining > 0 && (
-                  <p className="mt-6 inline-flex items-center gap-2 text-sm text-white/80">
+                  <p className="mt-6 inline-flex items-center gap-2 text-sm text-gray-600">
                     <Target size={16} className="flex-shrink-0" />
                     期限まであと {pointSummary.remaining} ポイント
                     {pointSummary.months !== null && pointSummary.months > 0 && (

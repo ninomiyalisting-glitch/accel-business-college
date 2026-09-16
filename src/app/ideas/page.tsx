@@ -261,7 +261,7 @@ export default function IdeasPage() {
   const filtered = filter === 'all' ? ideas : ideas.filter((i) => i.category === filter)
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       {/* 見出しは共通ヘッダーが出す。絞り込みだけ本文側に残す */}
       <div className="bg-white border-b border-gray-100">
         <div className="max-w-content mx-auto px-4 py-3 overflow-x-auto">

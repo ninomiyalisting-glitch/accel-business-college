@@ -371,7 +371,7 @@ export default function GalleryPage() {
     selectedCategory && (isAdmin || selectedCategory.is_member_upload) && userName
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       {/* Header */}
       {/* 見出し・アイコン・ログアウトは共通ヘッダーへ移した。
           カテゴリーを開いているときだけ、その中での戻る操作を残す */}
@@ -400,7 +400,7 @@ export default function GalleryPage() {
               {userName && (
                 <button
                   onClick={() => setShowCreateCategory(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#006899] text-white rounded-xl text-sm font-medium hover:bg-[#004f75] transition-colors"
                 >
                   <Plus size={15} />
                   カテゴリ作成
@@ -421,7 +421,7 @@ export default function GalleryPage() {
                 {userName && (
                   <button
                     onClick={() => setShowCreateCategory(true)}
-                    className="mt-4 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors"
+                    className="mt-4 px-4 py-2 bg-[#006899] text-white rounded-xl text-sm hover:bg-[#004f75] transition-colors"
                   >
                     最初のカテゴリを作成
                   </button>
@@ -517,7 +517,7 @@ export default function GalleryPage() {
                 {canUpload && (
                   <button
                     onClick={() => setShowUpload(true)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-[#006899] text-white rounded-xl text-sm font-medium hover:bg-[#004f75] transition-colors"
                   >
                     <Upload size={15} />
                     写真を追加
@@ -539,7 +539,7 @@ export default function GalleryPage() {
                 {canUpload && (
                   <button
                     onClick={() => setShowUpload(true)}
-                    className="mt-4 px-4 py-2 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors"
+                    className="mt-4 px-4 py-2 bg-[#006899] text-white rounded-xl text-sm hover:bg-[#004f75] transition-colors"
                   >
                     最初の写真を追加
                   </button>
@@ -659,7 +659,7 @@ export default function GalleryPage() {
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
                   placeholder="例: 2024年度入学式"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/30 focus:border-[#279300]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/30 focus:border-[#007cb4]"
                 />
               </div>
               <div>
@@ -669,7 +669,7 @@ export default function GalleryPage() {
                   value={newCategoryDesc}
                   onChange={(e) => setNewCategoryDesc(e.target.value)}
                   placeholder="カテゴリの説明"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/30 focus:border-[#279300]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/30 focus:border-[#007cb4]"
                 />
               </div>
               <div className="flex items-center justify-between py-2">
@@ -679,7 +679,7 @@ export default function GalleryPage() {
                 </div>
                 <button
                   onClick={() => setNewCategoryMember(!newCategoryMember)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newCategoryMember ? 'bg-[#279300]' : 'bg-gray-200'}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${newCategoryMember ? 'bg-[#007cb4]' : 'bg-gray-200'}`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${newCategoryMember ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>
@@ -695,7 +695,7 @@ export default function GalleryPage() {
               <button
                 onClick={handleCreateCategory}
                 disabled={!newCategoryName.trim() || creatingCategory}
-                className="flex-1 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 bg-[#006899] text-white rounded-xl text-sm font-medium hover:bg-[#004f75] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {creatingCategory ? '作成中...' : '作成する'}
               </button>
@@ -725,12 +725,12 @@ export default function GalleryPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                   isDragging
-                    ? 'border-[#279300] bg-[#279300]/5'
-                    : 'border-gray-200 hover:border-[#279300]/50'
+                    ? 'border-[#007cb4] bg-[#007cb4]/5'
+                    : 'border-gray-200 hover:border-[#007cb4]/50'
                 }`}
               >
                 <div className="py-8 flex flex-col items-center text-gray-400">
-                  <Upload size={28} className={`mb-2 transition-colors ${isDragging ? 'text-[#1f7a00]' : 'opacity-60'}`} />
+                  <Upload size={28} className={`mb-2 transition-colors ${isDragging ? 'text-[#006899]' : 'opacity-60'}`} />
                   <p className="text-sm font-medium">
                     {isDragging ? 'ここにドロップ' : 'クリックまたはドラッグ&ドロップ'}
                   </p>
@@ -774,7 +774,7 @@ export default function GalleryPage() {
                   value={uploadCaption}
                   onChange={(e) => setUploadCaption(e.target.value)}
                   placeholder="写真の説明を入力"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/30 focus:border-[#279300]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/30 focus:border-[#007cb4]"
                 />
               </div>
 
@@ -790,11 +790,11 @@ export default function GalleryPage() {
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>アップロード中...</span>
-                    <span className="font-medium text-[#1f7a00]">{uploadDone} / {uploadFiles.length}枚完了</span>
+                    <span className="font-medium text-[#006899]">{uploadDone} / {uploadFiles.length}枚完了</span>
                   </div>
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-[#279300] rounded-full transition-all duration-300"
+                      className="h-full bg-[#007cb4] rounded-full transition-all duration-300"
                       style={{ width: `${(uploadDone / uploadFiles.length) * 100}%` }}
                     />
                   </div>
@@ -813,7 +813,7 @@ export default function GalleryPage() {
               <button
                 onClick={handleUploadPhotos}
                 disabled={uploadFiles.length === 0 || uploading}
-                className="flex-1 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm font-medium hover:bg-[#145200] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2.5 bg-[#006899] text-white rounded-xl text-sm font-medium hover:bg-[#004f75] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading
                   ? `${uploadDone}/${uploadFiles.length}枚完了`

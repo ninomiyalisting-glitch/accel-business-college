@@ -59,7 +59,7 @@ export default function RootLayout({
   return (
     <html lang="ja" className={`h-full ${notoSansJP.variable}`}>
       <head>
-        <meta name="theme-color" content="#1f7a00" />
+        <meta name="theme-color" content="#006899" />
       </head>
       {/* 下余白は BodyPadding が付ける。body に直接付けると、
           自前で高さを計算するチャット画面で二重になり空白ができる */}

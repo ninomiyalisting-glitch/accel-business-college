@@ -57,7 +57,7 @@ export default function MemberPopup({ member, onClose }: Props) {
           <X size={15} />
         </button>
 
-        <div className="bg-gradient-to-b from-[#279300]/10 to-white pt-8 pb-4 flex justify-center">
+        <div className="bg-gradient-to-b from-[#007cb4]/10 to-white pt-8 pb-4 flex justify-center">
           {member.avatarUrl && !avatarError ? (
             <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-md ring-4 ring-white">
               <Image

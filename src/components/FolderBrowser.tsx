@@ -81,12 +81,12 @@ function FolderCard({ folder }: { folder: FolderInfo }) {
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <Folder size={48} className="text-[#1f7a00]/30" />
+            <Folder size={48} className="text-[#006899]/30" />
           </div>
         )}
         {/* フォルダアイコンバッジ (左上) */}
         <div className="absolute top-2 left-2 w-8 h-8 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center shadow-sm">
-          <Folder size={16} className="text-[#1f7a00]" />
+          <Folder size={16} className="text-[#006899]" />
         </div>
         {/* 動画数バッジ (右下) */}
         <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
@@ -95,7 +95,7 @@ function FolderCard({ folder }: { folder: FolderInfo }) {
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
+        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#006899] transition-colors">
           {folder.name}
         </h3>
         {folder.description && (
@@ -126,13 +126,13 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#279300]/10">
-            <Video size={32} className="text-[#1f7a00]/40" />
+          <div className="absolute inset-0 flex items-center justify-center bg-[#007cb4]/10">
+            <Video size={32} className="text-[#006899]/40" />
           </div>
         )}
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-            <Play size={22} className="text-[#1f7a00] ml-1" fill="currentColor" />
+            <Play size={22} className="text-[#006899] ml-1" fill="currentColor" />
           </div>
         </div>
         <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded font-mono">
@@ -140,7 +140,7 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
         </div>
       </div>
       <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#1f7a00] transition-colors">
+        <h3 className="font-semibold text-gray-900 text-sm leading-relaxed line-clamp-2 group-hover:text-[#006899] transition-colors">
           {video.name}
         </h3>
         <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400">
@@ -150,7 +150,7 @@ function VideoCard({ video, folderId }: { video: VimeoVideo; folderId: string })
         {video.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {video.tags.slice(0, 3).map((t) => (
-              <span key={t.name} className="text-[14px] px-1.5 py-0.5 bg-[#e8f5c9] text-[#1f7a00] rounded-full">
+              <span key={t.name} className="text-[14px] px-1.5 py-0.5 bg-[#e3f2fb] text-[#006899] rounded-full">
                 {t.name}
               </span>
             ))}
@@ -233,7 +233,7 @@ export default function FolderBrowser({
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* ── Header ── */}
-      <header className="bg-[#1f7a00] text-white flex-shrink-0 sticky top-0 z-10 shadow-md pt-[env(safe-area-inset-top)]">
+      <header className="bg-[#006899] text-white flex-shrink-0 sticky top-0 z-10 shadow-md pt-[env(safe-area-inset-top)]">
         {/* 見出し（動画ライブラリ）と「管理」は共通ヘッダーの見出し帯にある。
             戻るリンクもグローバルナビがあるので置かない。
             ここに残すのは階層のパンくずと検索だけ。
@@ -287,7 +287,7 @@ export default function FolderBrowser({
             <button
               onClick={() => setSelectedTag(null)}
               className={`flex-shrink-0 text-xs px-3 py-1 rounded-full transition-colors ${
-                selectedTag === null ? 'bg-[#1f7a00] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                selectedTag === null ? 'bg-[#006899] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               すべて
@@ -297,7 +297,7 @@ export default function FolderBrowser({
                 key={tag}
                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                 className={`flex-shrink-0 text-xs px-3 py-1 rounded-full transition-colors ${
-                  selectedTag === tag ? 'bg-[#1f7a00] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  selectedTag === tag ? 'bg-[#006899] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
                 {tag}
@@ -311,7 +311,7 @@ export default function FolderBrowser({
       <main className="flex-1 max-w-content mx-auto w-full px-4 py-6 pb-bottom-nav">
         {loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-10 h-10 border-[3px] border-accel-lightest border-t-[#279300] rounded-full animate-spin" />
+            <div className="w-10 h-10 border-[3px] border-accel-lightest border-t-[#007cb4] rounded-full animate-spin" />
             <p className="text-gray-400 text-sm">読み込み中...</p>
           </div>
         )}
@@ -319,7 +319,7 @@ export default function FolderBrowser({
         {error && !loading && (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <p className="text-gray-600">{error}</p>
-            <button onClick={() => location.reload()} className="mt-2 px-4 py-2 bg-[#1f7a00] text-white rounded-lg text-sm hover:bg-[#145200] transition-colors">
+            <button onClick={() => location.reload()} className="mt-2 px-4 py-2 bg-[#006899] text-white rounded-lg text-sm hover:bg-[#004f75] transition-colors">
               再読み込み
             </button>
           </div>
@@ -330,7 +330,7 @@ export default function FolderBrowser({
             <Folder size={40} className="opacity-40" />
             <p className="text-lg font-medium">フォルダ・動画が見つかりません</p>
             {(searchQuery || selectedTag) && (
-              <button onClick={() => { setSearchQuery(''); setSelectedTag(null) }} className="text-sm text-[#1f7a00] hover:underline">
+              <button onClick={() => { setSearchQuery(''); setSelectedTag(null) }} className="text-sm text-[#006899] hover:underline">
                 フィルターをクリア
               </button>
             )}
@@ -341,7 +341,7 @@ export default function FolderBrowser({
         {!loading && !error && filteredFolders.length > 0 && (
           <section className="mb-8">
             <div className="flex items-center gap-2 mb-3">
-              <Folder size={16} className="text-[#1f7a00]" />
+              <Folder size={16} className="text-[#006899]" />
               <h2 className="text-sm font-bold text-gray-700">フォルダ</h2>
               <span className="text-xs text-gray-400">{filteredFolders.length}件</span>
             </div>
@@ -357,7 +357,7 @@ export default function FolderBrowser({
         {!loading && !error && filteredVideos.length > 0 && (
           <section>
             <div className="flex items-center gap-2 mb-3">
-              <Video size={16} className="text-[#1f7a00]" />
+              <Video size={16} className="text-[#006899]" />
               <h2 className="text-sm font-bold text-gray-700">動画</h2>
               <span className="text-xs text-gray-400">{filteredVideos.length}件</span>
             </div>

@@ -76,7 +76,7 @@ export default function NewArticlePage() {
     setCreatingCat(true)
     const { data, error } = await supabase
       .from('article_categories')
-      .insert({ name: newCatName.trim(), color: '#279300' })
+      .insert({ name: newCatName.trim(), color: '#007cb4' })
       .select('id, name, color, parent_id')
       .single()
     setCreatingCat(false)
@@ -157,17 +157,17 @@ export default function NewArticlePage() {
 
   if (!slackUser) {
     return (
-      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f3f8fc] flex items-center justify-center">
         <div className="text-center text-gray-400">
           <p className="mb-4">記事を書くにはログインが必要です</p>
-          <Link href="/articles" className="text-[#1f7a00] hover:underline text-sm">← 記事一覧に戻る</Link>
+          <Link href="/articles" className="text-[#006899] hover:underline text-sm">← 記事一覧に戻る</Link>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link href="/articles" className="flex items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors">
@@ -175,7 +175,7 @@ export default function NewArticlePage() {
             <span className="text-sm hidden sm:inline">記事一覧</span>
           </Link>
           <div className="w-px h-5 bg-gray-200" />
-          <BookOpen size={17} className="text-[#1f7a00]" />
+          <BookOpen size={17} className="text-[#006899]" />
           <h1 className="font-bold text-gray-900 text-[17px] flex-1">記事を書く</h1>
           <div className="flex items-center gap-2">
             <button
@@ -188,7 +188,7 @@ export default function NewArticlePage() {
             <button
               onClick={() => handleSubmit(true)}
               disabled={saving}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-[#1f7a00] hover:bg-[#145200] rounded-lg transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 text-xs font-medium text-white bg-[#006899] hover:bg-[#004f75] rounded-lg transition-colors disabled:opacity-50"
             >
               {saving ? '保存中...' : '公開する'}
             </button>
@@ -213,10 +213,10 @@ export default function NewArticlePage() {
               type="button"
               onClick={fetchCoverFromTitle}
               disabled={fetchingCover}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#279300]/30 px-3 py-2 text-xs font-medium text-[#1f7a00] transition-colors hover:bg-accel-lightest disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#007cb4]/30 px-3 py-2 text-xs font-medium text-[#006899] transition-colors hover:bg-accel-lightest disabled:opacity-50"
             >
               {fetchingCover ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#279300]/40 border-t-[#279300]" />
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#007cb4]/40 border-t-[#007cb4]" />
               ) : (
                 <Sparkles size={13} />
               )}
@@ -266,7 +266,7 @@ export default function NewArticlePage() {
                     value={newCatName}
                     onChange={(e) => setNewCatName(e.target.value)}
                     placeholder="大カテゴリー名"
-                    className="text-sm border border-[#279300] rounded-lg px-2 py-1 focus:outline-none w-36"
+                    className="text-sm border border-[#007cb4] rounded-lg px-2 py-1 focus:outline-none w-36"
                     onKeyDown={(e) => {
                       // 日本語入力の変換確定でも Enter が飛んでくる。
                       // それで作成が走り、意図しないカテゴリーができていた。
@@ -282,7 +282,7 @@ export default function NewArticlePage() {
                   <button
                     onClick={handleCreateCategory}
                     disabled={creatingCat || !newCatName.trim()}
-                    className="w-6 h-6 flex items-center justify-center bg-[#1f7a00] text-white rounded-md hover:bg-[#145200] disabled:opacity-50 transition-colors"
+                    className="w-6 h-6 flex items-center justify-center bg-[#006899] text-white rounded-md hover:bg-[#004f75] disabled:opacity-50 transition-colors"
                   >
                     <Check size={13} />
                   </button>

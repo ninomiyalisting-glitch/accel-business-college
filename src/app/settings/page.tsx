@@ -41,7 +41,7 @@ function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void 
       type="button"
       onClick={onToggle}
       className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-        enabled ? 'bg-[#279300]' : 'bg-gray-200'
+        enabled ? 'bg-[#007cb4]' : 'bg-gray-200'
       }`}
     >
       <span
@@ -116,13 +116,13 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
 
       <main className="max-w-lg mx-auto px-4 py-6 pb-bottom-nav space-y-4">
         {/* 通知 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
-            <Bell size={15} className="text-[#1f7a00]" />
+            <Bell size={15} className="text-[#006899]" />
             <h2 className="font-semibold text-gray-900 text-sm">通知</h2>
           </div>
           <ul className="divide-y divide-gray-50">
@@ -141,7 +141,7 @@ export default function SettingsPage() {
         {/* サウンド */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
-            <Volume2 size={15} className="text-[#1f7a00]" />
+            <Volume2 size={15} className="text-[#006899]" />
             <h2 className="font-semibold text-gray-900 text-sm">サウンド</h2>
           </div>
           <div className="flex items-center justify-between px-5 py-4 gap-4">
@@ -158,7 +158,7 @@ export default function SettingsPage() {
             未入力ならトップでは合計だけを出す。 */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
-            <Award size={15} className="text-[#1f7a00]" />
+            <Award size={15} className="text-[#006899]" />
             <h2 className="font-semibold text-gray-900 text-sm">実務従事の更新期限</h2>
           </div>
           <div className="px-5 py-4">
@@ -188,7 +188,7 @@ export default function SettingsPage() {
         {slackUserId === ADMIN_SLACK_USER_ID && (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
-              <Shield size={15} className="text-[#1f7a00]" />
+              <Shield size={15} className="text-[#006899]" />
               <h2 className="font-semibold text-gray-900 text-sm">管理</h2>
             </div>
             <div className="px-5 py-4">
@@ -207,7 +207,7 @@ export default function SettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving || loading || !slackUserId}
-          className="w-full py-3 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 bg-[#006899] hover:bg-[#004f75] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
           {saving && <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
           {saveState === 'saved' ? '保存しました ✓' : saving ? '保存中...' : '設定を保存する'}

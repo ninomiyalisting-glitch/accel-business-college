@@ -263,7 +263,7 @@ export default function MembersPage() {
   }, [filtered, sortOrder, statsMap, profileMap])
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       {/* 見出しは共通ヘッダーが出す。ここは固有の操作と件数だけ */}
       <div className="max-w-content mx-auto px-4 pt-6 flex flex-wrap items-center gap-3">
         {mySlackUserId && (
@@ -284,7 +284,7 @@ export default function MembersPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="名前・地域・所属・専門分野・自己紹介など..."
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#279300]/20 focus:border-[#279300]"
+              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20 focus:border-[#007cb4]"
             />
           </div>
           <div className="relative">
@@ -292,7 +292,7 @@ export default function MembersPage() {
               onClick={() => setShowSortMenu((v) => !v)}
               className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm border transition-colors ${
                 sortOrder !== 'activity'
-                  ? 'text-[#1f7a00] bg-[#279300]/5 border-[#279300]/20'
+                  ? 'text-[#006899] bg-[#007cb4]/5 border-[#007cb4]/20'
                   : 'text-gray-500 bg-white border-gray-200 hover:bg-gray-50'
               }`}
             >
@@ -310,7 +310,7 @@ export default function MembersPage() {
                       onClick={() => handleSortChange(order)}
                       className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                         sortOrder === order
-                          ? 'text-[#1f7a00] font-semibold bg-[#279300]/5'
+                          ? 'text-[#006899] font-semibold bg-[#007cb4]/5'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >

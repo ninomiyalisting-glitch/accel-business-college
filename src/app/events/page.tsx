@@ -169,7 +169,7 @@ export default function EventsPage() {
   }, [events, filter])
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       <div className="max-w-content mx-auto px-4 pt-6 flex flex-wrap items-center gap-3">
         {/* カテゴリーの絞り込みを左、作成ボタンを右に置く */}
         <div className="flex flex-wrap items-center gap-1.5">

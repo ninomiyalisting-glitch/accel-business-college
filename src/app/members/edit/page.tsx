@@ -200,22 +200,22 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#f3f8fc] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#007cb4]/30 border-t-[#007cb4] rounded-full animate-spin" />
       </div>
     )
   }
 
   if (!slackUserId) {
     return (
-      <div className="min-h-screen bg-[#f7faf2] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#f3f8fc] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full">
           <LogIn size={40} className="text-gray-300 mx-auto mb-4" />
           <p className="text-gray-600 font-medium mb-2">Slackログインが必要です</p>
           <p className="text-gray-400 text-sm mb-6">プロフィールを編集するにはSlackでログインしてください</p>
           <Link
             href="/chat"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#1f7a00] text-white rounded-xl text-sm hover:bg-[#145200] transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#006899] text-white rounded-xl text-sm hover:bg-[#004f75] transition-colors"
           >
             ログインページへ
           </Link>
@@ -225,7 +225,7 @@ export default function EditProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7faf2]">
+    <div className="min-h-screen bg-[#f3f8fc]">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-[env(safe-area-inset-top)]">
         <div className="max-w-prose mx-auto px-4 h-14 flex items-center gap-3">
           <Link
@@ -240,7 +240,7 @@ export default function EditProfilePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="ml-auto flex items-center gap-1.5 px-4 py-1.5 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
+            className="ml-auto flex items-center gap-1.5 px-4 py-1.5 bg-[#006899] hover:bg-[#004f75] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
           >
             {saving ? (
               <><div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> 保存中...</>
@@ -268,7 +268,7 @@ export default function EditProfilePage() {
               <Avatar src={avatarUrl} name={displayName} size={88} className="ring-2 ring-gray-100" />
               {avatarBusy && (
                 <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70">
-                  <div className="w-6 h-6 border-2 border-[#279300]/30 border-t-[#279300] rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-[#007cb4]/30 border-t-[#007cb4] rounded-full animate-spin" />
                 </div>
               )}
             </div>
@@ -278,7 +278,7 @@ export default function EditProfilePage() {
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={avatarBusy}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#006899] hover:bg-[#004f75] disabled:opacity-60 text-white rounded-lg text-sm font-medium transition-colors"
                 >
                   <Camera size={15} /> 写真を選ぶ
                 </button>
@@ -356,7 +356,7 @@ export default function EditProfilePage() {
                     value={social[sv.key]}
                     onChange={(e) => setSocial((prev) => ({ ...prev, [sv.key]: e.target.value }))}
                     placeholder={sv.placeholder}
-                    className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:border-[#279300] focus:outline-none focus:ring-2 focus:ring-[#279300]/20"
+                    className="min-w-0 flex-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 placeholder-gray-300 focus:border-[#007cb4] focus:outline-none focus:ring-2 focus:ring-[#007cb4]/20"
                   />
                 </div>
               ))}
@@ -368,7 +368,7 @@ export default function EditProfilePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#1f7a00] hover:bg-[#145200] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-[#006899] hover:bg-[#004f75] disabled:opacity-60 text-white rounded-xl text-sm font-medium transition-colors"
           >
             {saving ? (
               <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> 保存中...</>

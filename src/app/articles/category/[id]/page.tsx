@@ -35,7 +35,7 @@ interface Article {
 /** 画像が無いときの下地色。タイトルから決めるので並べても見分けがつく */
 const TONES = [
   'bg-accel-lightest text-accel-secondary',
-  'bg-[#dff0c4] text-[#279300]',
+  'bg-[#d8f3ef] text-[#1d8a7b]',
   'bg-[#e6f2f8] text-[#0097DB]',
   'bg-[#f3f0dc] text-[#8a7f2e]',
   'bg-[#eae7f5] text-[#6b5fa8]',
