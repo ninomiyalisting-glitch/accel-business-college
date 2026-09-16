@@ -956,12 +956,13 @@ export default function DashboardPage() {
         {/* ── 実務従事更新ポイント ── */}
         <section className="mb-14 overflow-hidden rounded-3xl border border-gray-100 bg-white text-gray-900 shadow-sm">
           <div className="px-6 py-6 sm:px-8 sm:py-7">
-            <div className="mb-6 flex items-center gap-3">
+            {/* スマホではリンクが見出しを押し潰すので、リンクは 2 行目に回す */}
+            <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2">
               <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accel-lightest text-accel-text">
                 <Award size={20} />
               </span>
-              <h2 className="text-lg font-bold">実務従事更新ポイント</h2>
-              <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-x-4 gap-y-1">
+              <h2 className="whitespace-nowrap text-lg font-bold">実務従事更新ポイント</h2>
+              <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 sm:ml-auto sm:w-auto sm:justify-end">
                 <button
                   type="button"
                   onClick={openPointList}
