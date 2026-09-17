@@ -153,15 +153,18 @@ function CreateFolderModal({
 // ─── Upload Video Modal ───────────────────────────────────────────────────────
 
 function UploadModal({
-  folders, defaultFolderId, onClose, onUploaded,
+  folders, defaultFolderId, initialFile, onClose, onUploaded,
 }: {
   folders: VimeoFolder[]
   defaultFolderId: string | null
+  /** 画面にドロップされたファイル。あれば選択済みの状態で開く */
+  initialFile?: File | null
   onClose: () => void
   onUploaded: (video: VimeoVideo) => void
 }) {
-  const [file, setFile] = useState<File | null>(null)
-  const [title, setTitle] = useState('')
+  const [file, setFile] = useState<File | null>(initialFile ?? null)
+  const [title, setTitle] = useState(initialFile ? initialFile.name.replace(/\.[^.]+$/, '') : '')
+  const [dragOver, setDragOver] = useState(false)
   const [desc, setDesc] = useState('')
   const [folderId, setFolderId] = useState(defaultFolderId ?? '')
   const [progress, setProgress] = useState(0)
@@ -169,11 +172,21 @@ function UploadModal({
   const [error, setError] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
+  const pickFile = (f: File | undefined | null) => {
     if (!f) return
+    if (!f.type.startsWith('video/') && !/\.(mp4|mov|m4v|avi|mkv|webm|wmv)$/i.test(f.name)) {
+      setError('動画ファイル（MP4, MOV など）を選んでください')
+      return
+    }
+    setError(null)
     setFile(f)
     if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''))
+  }
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => pickFile(e.target.files?.[0])
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragOver(false)
+    if (busy) return
+    pickFile(e.dataTransfer.files?.[0])
   }
 
   const upload = async () => {
@@ -264,20 +277,26 @@ function UploadModal({
         {/* File picker */}
         <div
           onClick={() => !busy && fileRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); if (!busy) setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
           className={`border-2 border-dashed rounded-xl px-4 py-6 text-center cursor-pointer transition-colors ${
-            file ? 'border-[#007cb4]/50 bg-[#007cb4]/5' : 'border-gray-200 hover:border-[#007cb4]/40'
+            dragOver ? 'border-[#007cb4] bg-[#007cb4]/10' : file ? 'border-[#007cb4]/50 bg-[#007cb4]/5' : 'border-gray-200 hover:border-[#007cb4]/40'
           } ${busy ? 'pointer-events-none opacity-60' : ''}`}
         >
           {file ? (
-            <div className="flex items-center justify-center gap-2 text-[#006899]">
-              <Video size={20} />
-              <span className="text-sm font-medium truncate max-w-xs">{file.name}</span>
-              <span className="text-xs text-gray-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
-            </div>
+            <>
+              <div className="flex items-center justify-center gap-2 text-[#006899]">
+                <Video size={20} />
+                <span className="text-sm font-medium truncate max-w-xs">{file.name}</span>
+                <span className="text-xs text-gray-400">({(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+              </div>
+              {!busy && <p className="mt-1.5 text-xs text-gray-400">別のファイルをドロップ／クリックで差し替え</p>}
+            </>
           ) : (
             <>
               <Upload size={28} className="mx-auto mb-2 text-gray-300" />
-              <p className="text-sm text-gray-500">クリックして動画ファイルを選択</p>
+              <p className="text-sm text-gray-500">ここに動画をドラッグ＆ドロップ、またはクリックして選択</p>
               <p className="text-xs text-gray-400 mt-0.5">MP4, MOV, AVI など</p>
             </>
           )}
@@ -465,6 +484,9 @@ export default function ManagePage() {
 
   const [showCreateFolder, setShowCreateFolder] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
+  /** 画面のどこかにドロップされた動画。アップロード画面に渡す */
+  const [droppedFile, setDroppedFile] = useState<File | null>(null)
+  const [pageDrag, setPageDrag] = useState(false)
   const [editingVideo, setEditingVideo] = useState<VimeoVideo | null>(null)
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -574,7 +596,31 @@ export default function ManagePage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div
+      className="min-h-screen bg-gray-50 flex flex-col"
+      onDragOver={(e) => {
+        // ファイルのドラッグだけ受ける（画面内の要素の移動は対象外）
+        if (!isAdmin || showUpload) return
+        if (Array.from(e.dataTransfer.types).includes('Files')) { e.preventDefault(); setPageDrag(true) }
+      }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setPageDrag(false) }}
+      onDrop={(e) => {
+        if (!isAdmin || showUpload) return
+        const f = e.dataTransfer.files?.[0]
+        if (!f) return
+        e.preventDefault(); setPageDrag(false)
+        setDroppedFile(f); setShowUpload(true)
+      }}
+    >
+      {pageDrag && (
+        <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-[#007cb4]/10 backdrop-blur-[1px]">
+          <div className="rounded-2xl border-2 border-dashed border-[#007cb4] bg-white/95 px-10 py-8 text-center shadow-xl">
+            <Upload size={32} className="mx-auto mb-2 text-[#007cb4]" />
+            <p className="font-bold text-[#006899]">ここにドロップしてアップロード</p>
+            <p className="mt-1 text-xs text-gray-500">{selectedFolderId ? '選択中のフォルダに入ります（あとで変更できます）' : 'フォルダは次の画面で選べます'}</p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-[#1e293b] text-white sticky top-0 z-10 shadow-lg pt-[env(safe-area-inset-top)]">
         <div className="flex items-center gap-3 px-4 h-14">
@@ -704,7 +750,8 @@ export default function ManagePage() {
         <UploadModal
           folders={folders}
           defaultFolderId={selectedFolderId}
-          onClose={() => setShowUpload(false)}
+          initialFile={droppedFile}
+          onClose={() => { setShowUpload(false); setDroppedFile(null) }}
           onUploaded={(video) => {
             setVideos((prev) => [video, ...prev])
           }}
