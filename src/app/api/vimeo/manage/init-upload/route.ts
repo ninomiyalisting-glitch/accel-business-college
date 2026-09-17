@@ -31,23 +31,39 @@ export async function POST(req: NextRequest) {
    * フォルダ内作成に失敗したら（権限やフォルダ削除など）、ルートに作って
    * 「フォルダには入っていない」ことを返し、画面側で追加を試す。
    */
-  let userId: string | null = null
+  /**
+   * フォルダの持ち主の ID を使う。チームライブラリのフォルダはチームオーナーの所有なので、
+   * 自分（/me）の ID を使うと 404 になる。フォルダ情報の uri（/users/{owner}/projects/{id}）から取る。
+   */
+  let ownerId: string | null = null
+  let folderError = ''
   if (folderId) {
-    const meRes = await fetch('https://api.vimeo.com/me?fields=uri', { headers: { Authorization: headers.Authorization, Accept: headers.Accept } })
-    if (meRes.ok) {
-      const me = (await meRes.json()) as { uri?: string }
-      userId = me.uri?.split('/').pop() ?? null
+    const fRes = await fetch(`https://api.vimeo.com/me/projects/${encodeURIComponent(String(folderId))}?fields=uri,user.uri`, {
+      headers: { Authorization: headers.Authorization, Accept: headers.Accept }, cache: 'no-store',
+    })
+    if (fRes.ok) {
+      const f = (await fRes.json()) as { uri?: string; user?: { uri?: string } }
+      const m = f.uri?.match(/\/users\/(\d+)\//)
+      ownerId = m?.[1] ?? f.user?.uri?.split('/').pop() ?? null
+    } else {
+      folderError = `フォルダ情報の取得に失敗（${fRes.status}）`
+    }
+    if (!ownerId && !folderError) {
+      const meRes = await fetch('https://api.vimeo.com/me?fields=uri', { headers: { Authorization: headers.Authorization, Accept: headers.Accept } })
+      if (meRes.ok) ownerId = ((await meRes.json()) as { uri?: string }).uri?.split('/').pop() ?? null
     }
   }
-  const folderEndpoint = folderId && userId
-    ? `https://api.vimeo.com/users/${encodeURIComponent(userId)}/projects/${encodeURIComponent(String(folderId))}/videos`
+  const folderEndpoint = folderId && ownerId
+    ? `https://api.vimeo.com/users/${encodeURIComponent(ownerId)}/projects/${encodeURIComponent(String(folderId))}/videos`
     : null
 
   let res: Response | null = null
   if (folderEndpoint) {
     res = await fetch(folderEndpoint, { method: 'POST', headers, body: payload })
     if (!res.ok) {
-      console.warn('[init-upload] folder create failed, falling back to root:', res.status, (await res.text()).slice(0, 200))
+      const t = (await res.text()).slice(0, 200)
+      console.warn('[init-upload] folder create failed, falling back to root:', res.status, t)
+      folderError = `フォルダ内に直接作成できず（${res.status}${res.status === 403 ? ' 権限不足: トークンに interact スコープが必要' : ''}）`
       res = null
     }
   }
@@ -69,5 +85,7 @@ export async function POST(req: NextRequest) {
     videoId: (data.uri as string).split('/').pop(),
     uploadLink: data.upload?.upload_link as string,
     folderId: placed,
+    // フォルダに入れられなかった理由（画面で表示する）
+    folderError: placed ? null : (folderError || null),
   })
 }

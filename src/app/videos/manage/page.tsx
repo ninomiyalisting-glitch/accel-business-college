@@ -195,7 +195,7 @@ function UploadModal({
 
     // 1. Init upload on Vimeo（フォルダ指定があれば、最初からそのフォルダ内に作る）
     setPhase('init')
-    let uploadLink = '', videoId = '', placedIn: string | null = null
+    let uploadLink = '', videoId = '', placedIn: string | null = null, initFolderErr = ''
     try {
       const res = await fetch('/api/vimeo/manage/init-upload', {
         method: 'POST',
@@ -207,6 +207,7 @@ function UploadModal({
       uploadLink = data.uploadLink
       videoId = data.videoId
       placedIn = data.folderId ?? null
+      initFolderErr = data.folderError ?? ''
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setPhase('idle')
@@ -245,7 +246,7 @@ function UploadModal({
         }
       }
       if (lastErr) {
-        setError(`動画はアップロードされましたが、フォルダに入れられませんでした（${lastErr}）。Vimeo 上で手動で移動してください。`)
+        setError(`動画はアップロードされましたが、フォルダに入れられませんでした（${initFolderErr ? initFolderErr + ' / ' : ''}${lastErr}）。Vimeo 上で手動で移動してください。`)
         setPhase('idle')
         onUploaded({
           uri: `/videos/${videoId}`, name: title.trim(), description: desc.trim() || null,
@@ -490,6 +491,8 @@ export default function ManagePage() {
   const [editingVideo, setEditingVideo] = useState<VimeoVideo | null>(null)
   const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  /** 本番トークンでフォルダ機能が使えるか（管理者にだけ表示） */
+  const [tokenCheck, setTokenCheck] = useState<{ ok: boolean; canFolder?: boolean; missing?: string[]; scopes?: string[]; error?: string } | null>(null)
 
   // Auth check — all logged-in members can access; admin gets extra controls
   useEffect(() => {
@@ -523,6 +526,15 @@ export default function ManagePage() {
       .catch(() => {})
       .finally(() => setFoldersLoading(false))
   }, [isLoggedIn])
+
+  // Vimeo トークンの権限確認（管理者のみ）。フォルダ機能に必要なスコープが無ければ上部に警告を出す
+  useEffect(() => {
+    if (!isAdmin) return
+    fetch('/api/vimeo/manage/token-check', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => setTokenCheck(d))
+      .catch(() => {})
+  }, [isAdmin])
 
   // Load videos for selected folder
   const loadVideos = useCallback((folderId: string | null) => {
@@ -654,6 +666,22 @@ export default function ManagePage() {
           </div>
         </div>
       </header>
+
+      {/* トークン権限の警告（管理者のみ） */}
+      {isAdmin && tokenCheck && (!tokenCheck.ok || tokenCheck.canFolder === false) && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-xs text-amber-900">
+          {!tokenCheck.ok ? (
+            <p><span className="font-bold">Vimeo トークンを確認できません：</span>{tokenCheck.error}</p>
+          ) : (
+            <p>
+              <span className="font-bold">本番の Vimeo トークンに権限が足りません</span>
+              （不足: {tokenCheck.missing?.join(', ')}）。アップロードはできますが、フォルダへの格納ができません。
+              Vimeo でトークンを <span className="font-bold">Interact</span> 付きで再発行 → Vercel の環境変数 VIMEO_ACCESS_TOKEN（Production）を更新 → 再デプロイしてください。
+              現在の権限: {tokenCheck.scopes?.join(' ')}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
