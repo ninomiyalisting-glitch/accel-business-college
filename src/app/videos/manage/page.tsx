@@ -180,19 +180,20 @@ function UploadModal({
     if (!file || !title.trim()) return
     setError(null)
 
-    // 1. Init upload on Vimeo
+    // 1. Init upload on Vimeo（フォルダ指定があれば、最初からそのフォルダ内に作る）
     setPhase('init')
-    let uploadLink = '', videoId = ''
+    let uploadLink = '', videoId = '', placedIn: string | null = null
     try {
       const res = await fetch('/api/vimeo/manage/init-upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: title.trim(), description: desc.trim(), size: file.size }),
+        body: JSON.stringify({ name: title.trim(), description: desc.trim(), size: file.size, folderId: folderId || null }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Init failed')
       uploadLink = data.uploadLink
       videoId = data.videoId
+      placedIn = data.folderId ?? null
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setPhase('idle')
@@ -209,14 +210,36 @@ function UploadModal({
       return
     }
 
-    // 3. Add to folder
-    if (folderId) {
+    // 3. フォルダに入っていることを確かめる。
+    //    init でフォルダ内に作れていれば何もしない。作れていなければ追加を試す（少し待って最大3回）。
+    //    以前はここの失敗を握りつぶしていたため、フォルダに入っていなくても「完了」と出ていた。
+    if (folderId && placedIn !== folderId) {
       setPhase('folder')
-      await fetch('/api/vimeo/manage/add-to-folder', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId, folderId }),
-      }).catch(() => {})
+      let lastErr = ''
+      for (const wait of [0, 1500, 4000]) {
+        if (wait) await new Promise((r) => setTimeout(r, wait))
+        try {
+          const res = await fetch('/api/vimeo/manage/add-to-folder', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ videoId, folderId }),
+          })
+          if (res.ok) { lastErr = ''; break }
+          const data = await res.json().catch(() => ({}))
+          lastErr = data.error ?? `HTTP ${res.status}`
+        } catch (e) {
+          lastErr = e instanceof Error ? e.message : String(e)
+        }
+      }
+      if (lastErr) {
+        setError(`動画はアップロードされましたが、フォルダに入れられませんでした（${lastErr}）。Vimeo 上で手動で移動してください。`)
+        setPhase('idle')
+        onUploaded({
+          uri: `/videos/${videoId}`, name: title.trim(), description: desc.trim() || null,
+          duration: 0, created_time: new Date().toISOString(), pictures: { sizes: [] },
+        })
+        return
+      }
     }
 
     setPhase('done')

@@ -21,7 +21,9 @@ export async function PUT(req: NextRequest) {
   if (!res.ok && res.status !== 204) {
     const text = await res.text()
     console.error('[add-to-folder] error:', res.status, text)
-    return NextResponse.json({ error: `Vimeo: ${res.status}` }, { status: res.status })
+    // 403 はトークンの権限不足（edit / interact スコープ）のことが多い。原因が分かる文言で返す
+    const hint = res.status === 403 ? 'Vimeo トークンにフォルダを編集する権限（edit）がありません。' : ''
+    return NextResponse.json({ error: `Vimeo: ${res.status} ${hint}${text.slice(0, 160)}` }, { status: res.status })
   }
 
   return NextResponse.json({ ok: true })
